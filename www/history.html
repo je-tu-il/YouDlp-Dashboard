@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouDlp-Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(239, 68, 68, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #f8fafc, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .tab.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .tab#tab-errors.active {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        select {
+            padding: 0.75rem 1.5rem;
+            background: rgba(30, 41, 59, 0.9);
+            color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 99px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .clear-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-radius: 99px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            transition: all 0.3s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        /* GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.error-card {
+            border-color: rgba(239, 68, 68, 0.4);
+            cursor: pointer;
+        }
+
+        .thumb-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-color: #1e293b;
+            position: relative;
+        }
+
+        .thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status.encours { background: rgba(245, 158, 11, 0.9); }
+        .status.enattente { background: rgba(100, 116, 139, 0.9); }
+        .status.erreur { background: rgba(239, 68, 68, 0.9); }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge.mp4 { background: rgba(59, 130, 246, 0.8); }
+        .badge.mp3 { background: rgba(16, 185, 129, 0.8); }
+
+        .content { padding: 1.25rem; display: flex; flex-direction: column; flex-grow: 1; }
+        .title { font-weight: 600; font-size: 1.1rem; margin-bottom: 1rem; line-height: 1.4; word-break: break-word;}
+        
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: auto; }
+        button {
+            padding: 0.5rem; border-radius: 0.5rem; border: none; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: white;
+        }
+        button:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        button.fav { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid transparent; }
+        button.fav.active { background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); }
+        
+        button.danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouDlp-Dashboard</h1>
+            <div class="controls-bar">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('history')" id="tab-history">Téléchargés</div>
+                    <div class="tab" onclick="switchTab('queue')" id="tab-queue">En cours</div>
+                    <div class="tab" onclick="switchTab('errors')" id="tab-errors">Erreurs</div>
+                </div>
+                <div class="controls">
+                    <select id="sort-select" onchange="renderCards()">
+                        <option value="date">Trier par date (Plus récent)</option>
+                        <option value="alpha">Trier par nom (A-Z)</option>
+                        <option value="fav">Trier par favoris</option>
+                    </select>
+                    <input type="text" id="search-input" placeholder="🔍 Rechercher une vidéo..." oninput="renderCards()" style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; width: 300px;">
+                    <button class="clear-btn" onclick="clearHistory()">🗑️ Tout effacer</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <script>
+        let currentTab = 'history';
+        let allData = [];
+
+        async function api(action, target, event) {
+            if (event) {
+                if (action === 'toggle_favorite') {
+                    const btn = event.target.closest('.btn');
+                    if (btn) {
+                        btn.classList.toggle('active');
+                        if (btn.classList.contains('active')) {
+                            btn.innerHTML = '⭐ Favoris';
+                        } else {
+                            btn.innerHTML = '☆ Favoris';
+                        }
+                        btn.style.transition = 'transform 0.2s';
+                        btn.style.transform = 'scale(1.2)';
+                        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+                    }
+                } else if (['delete', 'remove_queue', 'delete_error', 'stop'].includes(action)) {
+                    const card = event.target.closest('.card');
+                    if (card) {
+                        card.style.transition = 'all 0.3s ease';
+                        card.style.transform = 'scale(0.8)';
+                        card.style.opacity = '0';
+                    }
+                }
+            }
+            await fetch('/api/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, target })
+            });
+            setTimeout(loadData, 300);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+            document.getElementById('tab-queue').classList.toggle('active', tab === 'queue');
+            document.getElementById('tab-errors').classList.toggle('active', tab === 'errors');
+            
+            // Hide sorting on queue and errors tab
+            const controls = document.querySelector('.controls');
+            if (controls) {
+                controls.style.display = tab === 'history' ? 'flex' : 'none';
+            }
+            
+            renderCards();
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch('/api/data?t=' + Date.now(), { cache: 'no-store' });
+                allData = await res.json();
+                renderCards();
+            } catch (err) {}
+        }
+
+        function clearHistory() {
+            if(confirm("Êtes-vous sûr de vouloir supprimer tout l'historique ?")) {
+                api('clear_history', '');
+            }
+        }
+
+        function addLink(type) {
+            let url = document.getElementById('url-input').value;
+            if (!url) return alert('Veuillez entrer une URL');
+            
+            let match = url.match(/(https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)[^\s]*)/i);
+            if (match) url = match[1];
+            else return alert('URL YouTube non détectée dans le texte.');
+
+            fetch('/', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'add', url: url, type: type })
+            }).then(() => {
+                document.getElementById('url-input').value = '';
+                loadData();
+            });
+        }
+
+        function deleteHistory(id, event) {
+            if(event) {
+                const card = event.target.closest('.card');
+                if(card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'scale(0.8)';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+            }
+            fetch('/api/action', { method: 'POST', body: JSON.stringify({ action: 'delete_history', id: id }) })
+            .then(() => setTimeout(loadData, 300));
+        }
+
+        function toggleFav(id, event) {
+            if(event) {
+                const btn = event.target.closest('.btn');
+                if(btn) {
+                    btn.classList.toggle('active');
+                    btn.style.transition = 'transform 0.2s';
+                    btn.style.transform = 'scale(1.3)';
+                    setTimeout(() => btn.style.transform = 'scale(1)', 200);
+                }
+            }
+            fetch('/api/action', { method: 'POST', body: JSON.stringify({ action: 'toggle_fav', id: id }) })
+            .then(() => setTimeout(loadData, 300));
+        }
+
+        function deleteQueue(url, event) {
+            if(event) {
+                const card = event.target.closest('.card');
+                if(card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'scale(0.8)';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+            }
+            fetch('/api/action', { method: 'POST', body: JSON.stringify({ action: 'delete_queue', url: url }) })
+            .then(() => setTimeout(loadData, 300));
+        }
+        
+        function deleteError(id, event) {
+            if(event) {
+                const card = event.target.closest('.card');
+                if(card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'scale(0.8)';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+            }
+            fetch('/api/action', { method: 'POST', body: JSON.stringify({ action: 'delete_error', id: id }) })
+            .then(() => setTimeout(loadData, 300));
+        }
+
+        function escapeHTML(str) {
+            if(!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        function copyError(errText) {
+            navigator.clipboard.writeText(errText).then(() => {
+                alert("Erreur copiée dans le presse-papiers !");
+            });
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            let displayData = [];
+            
+            if (currentTab === 'history') {
+                displayData = allData.filter(item => item.statut === 'Termine');
+                
+                // Sorting logic
+                const sortType = document.getElementById('sort-select').value;
+                if (sortType === 'date') {
+                    displayData.reverse(); 
+                } else if (sortType === 'alpha') {
+                    displayData.sort((a, b) => a.title.localeCompare(b.title));
+                } else if (sortType === 'fav') {
+                    displayData.reverse();
+                    displayData.sort((a, b) => b.fav === a.fav ? 0 : b.fav ? 1 : -1);
+                }
+                
+                const searchTerm = document.getElementById('search-input').value.toLowerCase();
+                if (searchTerm) {
+                    displayData = displayData.filter(item => item.title.toLowerCase().includes(searchTerm));
+                }
+            } else if (currentTab === 'queue') {
+                displayData = allData.filter(item => item.statut === 'En cours' || item.statut === 'En attente');
+            } else if (currentTab === 'errors') {
+                displayData = allData.filter(item => item.statut === 'Erreur');
+                displayData.reverse();
+            }
+
+            if (displayData.length === 0) {
+                grid.innerHTML = '<div class="empty-state">Aucune donnée trouvée.</div>';
+                return;
+            }
+
+            displayData.forEach(item => {
+                let videoId = item.id;
+                if (!videoId && item.url) {
+                    let match = item.url.match(/[?&]v=([^&]+)/);
+                    if (match) videoId = match[1];
+                    else {
+                        match = item.url.match(/youtu\.be\/([^?]+)/);
+                        if (match) videoId = match[1];
+                    }
+                }
+                let thumbHtml = videoId ? '<img src="https://i.ytimg.com/vi/' + escapeHTML(videoId) + '/hqdefault.jpg" loading="lazy" class="thumb"/>' : '<div style="padding: 3rem; text-align: center; font-size: 2rem;">⏳</div>';
+                
+                let statusHtml = '';
+                let actionsHtml = '';
+                let extraClass = '';
+                let cardClick = '';
+                
+                if (item.statut === 'Termine') {
+                    statusHtml = '<div class="status-badge status termine">Terminé</div>';
+                    let favClass = item.fav ? 'btn active' : 'btn';
+                    let favText = item.fav ? '⭐ Favoris' : '☆ Favoris';
+                    actionsHtml = '<button class="' + favClass + '" onclick="api(\'toggle_favorite\', \'' + escapeHTML(item.id) + '\', event)">' + favText + '</button>' +
+                                  '<button class="danger" onclick="api(\'delete\', \'' + escapeHTML(item.id) + '\', event)">🗑️ Retirer</button>';
+                } else if (item.statut === 'En cours') {
+                    statusHtml = '<div class="status-badge status encours">En cours</div>';
+                    actionsHtml = '<button class="danger" style="grid-column: span 2" onclick="api(\'stop\', \'\', event)">🛑 Arrêter</button>';
+                } else if (item.statut === 'En attente') {
+                    statusHtml = '<div class="status-badge status enattente">En attente</div>';
+                    actionsHtml = '<button class="danger" style="grid-column: span 2" onclick="api(\'remove_queue\', \'' + escapeHTML(item.url) + '\', event)">❌ Retirer</button>';
+                } else if (item.statut === 'Erreur') {
+                    statusHtml = '<div class="status-badge status erreur">Erreur</div>';
+                    extraClass = 'error-card';
+                    let safeErr = escapeHTML(item.error || '').replace(/'/g, "\\'");
+                    cardClick = 'onclick="copyError(\'' + safeErr + '\')" title="Cliquez pour copier l\'erreur"';
+                    actionsHtml = '<button class="danger" style="grid-column: span 2" onclick="event.stopPropagation(); api(\'delete_error\', \'' + escapeHTML(item.id) + '\', event)">🗑️ Supprimer</button>';
+                }
+
+                grid.innerHTML += '<div class="card ' + extraClass + '" ' + cardClick + '>' +
+                    '<div class="thumb-container">' +
+                        thumbHtml +
+                        statusHtml +
+                        '<div class="badge ' + escapeHTML(item.format || '') + '">' + escapeHTML(item.format || '') + '</div>' +
+                    '</div>' +
+                    '<div class="content">' +
+                        '<div class="title">' + escapeHTML(item.title) + '</div>' +
+                        '<div class="actions">' + actionsHtml + '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+        }
+
+        // Init
+        loadData();
+        setInterval(loadData, 5000);
+    </script>
+</body>
+</html>
