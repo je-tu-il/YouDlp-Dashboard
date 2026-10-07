@@ -398,7 +398,7 @@ ProcessQueue:
                     safeT := StrReplace(safeT, "|", "-")
                     safeT := StrReplace(safeT, "`n", " ")
                     safeT := StrReplace(safeT, "`r", "")
-                    FileAppend, %safeT%|||%matchedFile%|||%CurrentDownloadVidID%|||%CurrentDownloadType%|||0`n, %histFile%
+                    FileAppend, %safeT%|||%matchedFile%|||%CurrentDownloadVidID%|||%CurrentDownloadType%|||0|||`n, %histFile%
                 }
                 SafeTrayTip("YouDlp Dashboard", "Téléchargement terminé avec succès !", 3, 1)
             } else {
@@ -534,7 +534,7 @@ ProcessQueue:
 
         if (type = "mp3") {
             audioQual := (quality != "" && InStr(quality, "k")) ? quality : SettingAudioQuality
-            cmdArgs := "-f ""bestaudio[language=fr]/bestaudio/best"" -x --audio-format mp3 --audio-quality " audioQual " " ffmpegFlag " -P ""home:" SettingPathMP3 """ -o ""%(title)s.%(ext)s"" --retries infinite --fragment-retries infinite " sbFlag " --no-warnings --extractor-args ""youtube:player_client=android,web"" --postprocessor-args ""ffmpeg:-avoid_negative_ts make_zero"" --print-to-file ""after_move:%(title)s|||%(filepath)s|||%(id)s|||mp3|||%(duration)s"" """ histFile """ --print-to-file ""after_video:OK:%(id)s"" """ statusFile """ """ url """"
+            cmdArgs := "-f ""bestaudio[language=fr]/bestaudio/best"" -x --audio-format mp3 --audio-quality " audioQual " " ffmpegFlag " -P ""home:" SettingPathMP3 """ -o ""%(title)s.%(ext)s"" --retries infinite --fragment-retries infinite " sbFlag " --no-warnings --extractor-args ""youtube:player_client=android,web"" --postprocessor-args ""ffmpeg:-avoid_negative_ts make_zero"" --print-to-file ""after_move:%(title)s|||%(filepath)s|||%(id)s|||mp3|||%(duration)s|||%(uploader)s"" """ histFile """ --print-to-file ""after_video:OK:%(id)s"" """ statusFile """ """ url """"
         } else {
             ; Sélection résolution vidéo
             if (quality = "1080") {
@@ -547,7 +547,7 @@ ProcessQueue:
                 ; 720p par défaut
                 videoFmt := "bestvideo[height<=720][ext=mp4]+bestaudio[language^=fr][ext=m4a]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best"
             }
-            cmdArgs := "-f """ videoFmt """ --merge-output-format mp4 " ffmpegFlag " -P ""home:" SettingPathMP4 """ -o ""%(title)s.%(ext)s"" --retries infinite --fragment-retries infinite " sbFlag " --no-warnings --extractor-args ""youtube:player_client=android,web"" --print-to-file ""after_move:%(title)s|||%(filepath)s|||%(id)s|||mp4|||%(duration)s"" """ histFile """ --print-to-file ""after_video:OK:%(id)s"" """ statusFile """ """ url """"
+            cmdArgs := "-f """ videoFmt """ --merge-output-format mp4 " ffmpegFlag " -P ""home:" SettingPathMP4 """ -o ""%(title)s.%(ext)s"" --retries infinite --fragment-retries infinite " sbFlag " --no-warnings --extractor-args ""youtube:player_client=android,web"" --print-to-file ""after_move:%(title)s|||%(filepath)s|||%(id)s|||mp4|||%(duration)s|||%(uploader)s"" """ histFile """ --print-to-file ""after_video:OK:%(id)s"" """ statusFile """ """ url """"
         }
 
         DetectHiddenWindows, On
@@ -726,9 +726,10 @@ class HttpServer extends SocketTCP {
                             hId := parts[3]
                             hFormat := parts[4]
                             hDuration := parts.MaxIndex() >= 5 ? parts[5] : "0"
+                            hChannel := parts.MaxIndex() >= 6 ? parts[6] : ""
                             isFav := favIds[hId] ? "true" : "false"
 
-                            json .= "{""statut"":""Termine"",""title"":""" JsonEscape(hTitle) """,""path"":""" JsonEscape(hPath) """,""id"":""" JsonEscape(hId) """,""format"":""" JsonEscape(hFormat) """,""duration"":""" JsonEscape(hDuration) """,""fav"":" isFav ",""exists"":true},"
+                            json .= "{""statut"":""Termine"",""title"":""" JsonEscape(hTitle) """,""path"":""" JsonEscape(hPath) """,""id"":""" JsonEscape(hId) """,""format"":""" JsonEscape(hFormat) """,""duration"":""" JsonEscape(hDuration) """,""channel"":""" JsonEscape(hChannel) """,""fav"":" isFav ",""exists"":true},"
                         }
                     }
 

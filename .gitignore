@@ -2,4 +2,5 @@
 /thumbnails/
 /bin/yt-dlp.exe
 *.exe
+!Release/YouDlp-Dashboard-Lite.exe
 

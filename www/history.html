@@ -682,6 +682,11 @@
         }
         .sort-select:focus { border-color: var(--accent); }
 
+        .channel-select {
+            max-width: 175px;
+            text-overflow: ellipsis;
+        }
+
         .view-toggle {
             display: flex;
             background: var(--bg-surface);
@@ -994,6 +999,53 @@
             transition: color 0.2s ease;
         }
         .card:hover .card-title { color: var(--accent); }
+
+        .card-channel {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--accent-light);
+            margin-top: 0.3rem;
+            padding: 0.15rem 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-channel:hover {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: var(--accent-light);
+            transform: translateY(-1px);
+        }
+        .card-channel svg {
+            flex-shrink: 0;
+        }
+
+        .list-channel-tag {
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: var(--accent-light);
+            background: rgba(99, 102, 241, 0.12);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.6rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            white-space: nowrap;
+        }
+        .list-channel-tag:hover {
+            background: rgba(99, 102, 241, 0.25);
+            text-decoration: underline;
+        }
 
         /* ==========================================================================
            COMPACT LIST VIEW
@@ -1491,50 +1543,6 @@
             </div>
         </header>
 
-        <!-- HERO QUICK ADD BAR -->
-        <div class="quick-add-panel">
-            <div class="quick-add-main">
-                <div class="url-input-wrapper">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    <input type="text" id="quick-url-input" class="url-input" placeholder="Collez une URL YouTube, Shorts, Playlist... (ou appuyez sur Ctrl+V)">
-                </div>
-                <div class="btn-group-download">
-                    <button class="btn-dl mp4" onclick="addDownload('mp4')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
-                        Télécharger MP4
-                    </button>
-                    <button class="btn-dl mp3" onclick="addDownload('mp3')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                        Télécharger MP3
-                    </button>
-                </div>
-            </div>
-
-            <div class="quick-options-bar">
-                <div class="quick-select-group">
-                    <span>Qualité Vidéo :</span>
-                    <select id="quick-quality" class="quick-select">
-                        <option value="720">720p (Rapide / Recommandé)</option>
-                        <option value="1080">1080p Full HD</option>
-                        <option value="best">Meilleure disponible (Max)</option>
-                        <option value="480">480p (Éco)</option>
-                    </select>
-                </div>
-                <div class="quick-select-group">
-                    <span>Qualité Audio :</span>
-                    <select id="quick-audio-quality" class="quick-select">
-                        <option value="128k">128 kbps (Standard)</option>
-                        <option value="192k">192 kbps (Élevée)</option>
-                        <option value="320k">320 kbps (HQ)</option>
-                    </select>
-                </div>
-                <label class="quick-checkbox">
-                    <input type="checkbox" id="quick-sponsorblock" checked>
-                    <span>Passer les sponsors (SponsorBlock)</span>
-                </label>
-            </div>
-        </div>
-
         <!-- LIVE ACTIVE DOWNLOAD SECTION -->
         <div class="active-download-section" id="active-download-container">
             <div class="live-card">
@@ -1594,9 +1602,13 @@
             <div class="toolbar-actions">
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="search-input" class="search-input" placeholder="Rechercher..." oninput="renderCards()">
+                    <input type="text" id="search-input" class="search-input" placeholder="Rechercher titre, chaîne..." oninput="renderCards()">
                     <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
                 </div>
+
+                <select id="channel-filter" class="sort-select channel-select" onchange="renderCards()" title="Filtrer par chaîne YouTube">
+                    <option value="">📺 Toutes les chaînes</option>
+                </select>
 
                 <!-- Option Sélectionner au niveau de la barre de recherche -->
                 <button class="btn-select-toggle" id="btn-select-toggle" onclick="toggleSelectMode()" title="Sélectionner plusieurs vidéos">
@@ -1846,6 +1858,9 @@
         let lastHash = '';
         let currentAccent = localStorage.getItem('youdlp_accent') || 'blue';
         let activeDownloadURL = '';
+        let currentQuality = '720';
+        let currentAudioQuality = '128k';
+        let currentContextItem = null;
 
         // Mode sélection & batch
         let isSelectMode = false;
@@ -1882,14 +1897,12 @@
                 if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                     const text = (e.clipboardData || window.clipboardData).getData('text');
                     if (text && (text.includes('youtube.com') || text.includes('youtu.be') || text.includes('http'))) {
-                        if (currentTab === 'custom') {
+                        switchTab('custom');
+                        setTimeout(() => {
                             const cInput = document.getElementById('custom-url-input');
                             if (cInput) { cInput.value = text.trim(); cInput.focus(); }
-                        } else {
-                            const qInput = document.getElementById('quick-url-input');
-                            if (qInput) { qInput.value = text.trim(); qInput.focus(); }
-                        }
-                        showToast("Lien collé dans la barre de téléchargement", "info");
+                        }, 50);
+                        showToast("Lien collé dans Téléchargement personnalisé", "info");
                     }
                 }
             });
@@ -2005,6 +2018,7 @@
                     activeContainer.classList.remove('show');
                 }
 
+                updateChannelFilterOptions();
                 renderCards();
             } catch (err) {}
         }
@@ -2026,9 +2040,10 @@
                 document.getElementById('set-clipboardmonitor').checked = data.clipboardMonitor == 1;
                 document.getElementById('set-autoclosepopup').value = data.autoClosePopup !== undefined ? data.autoClosePopup : 12;
 
-                if (data.quality) document.getElementById('quick-quality').value = data.quality;
-                if (data.audioQuality) document.getElementById('quick-audio-quality').value = data.audioQuality;
-                document.getElementById('quick-sponsorblock').checked = data.sponsorBlock == 1;
+                currentQuality = data.quality || '720';
+                currentAudioQuality = data.audioQuality || '128k';
+                if (document.getElementById('custom-res-select')) document.getElementById('custom-res-select').value = currentQuality;
+                if (document.getElementById('custom-bitrate-select')) document.getElementById('custom-bitrate-select').value = currentAudioQuality;
             } catch (e) {}
         }
 
@@ -2044,8 +2059,8 @@
                 sponsorBlock: document.getElementById('set-sponsorblock').checked ? 1 : 0,
                 clipboardMonitor: document.getElementById('set-clipboardmonitor').checked ? 1 : 0,
                 autoClosePopup: parseInt(document.getElementById('set-autoclosepopup').value) || 0,
-                quality: document.getElementById('quick-quality').value,
-                audioQuality: document.getElementById('quick-audio-quality').value,
+                quality: (document.getElementById('custom-res-select') ? document.getElementById('custom-res-select').value : currentQuality) || '720',
+                audioQuality: (document.getElementById('custom-bitrate-select') ? document.getElementById('custom-bitrate-select').value : currentAudioQuality) || '128k',
                 labelMP4: "MP4 (Vidéo)",
                 labelMP3: "MP3 (Audio)"
             };
@@ -2107,30 +2122,10 @@
             setTimeout(checkSystemInfo, 3000);
         }
 
-        // Lancement d'un téléchargement via la barre Quick Add
+        // Redirection vers l'onglet Téléchargement personnalisé
         function addDownload(type) {
-            const input = document.getElementById('quick-url-input');
-            let url = input.value.trim();
-            if (!url) {
-                input.focus();
-                showToast("Veuillez coller une URL YouTube", "error");
-                return;
-            }
-
-            const quality = type === 'mp3'
-                ? (document.getElementById('quick-audio-quality') ? document.getElementById('quick-audio-quality').value : '128k')
-                : (document.getElementById('quick-quality') ? document.getElementById('quick-quality').value : '720');
-
-            fetch('/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'add', url: url, type: type, quality: quality })
-            }).then(() => {
-                input.value = '';
-                showToast(`Téléchargement ${type.toUpperCase()} ajouté à la file !`, "success");
-                lastHash = '';
-                pollStatus();
-            });
+            if (type) setCustomType(type);
+            switchTab('custom');
         }
 
         // Navigation par onglets (Mémorise dans localStorage)
@@ -2213,6 +2208,75 @@
             renderCards();
         }
 
+        // Extraction intelligente du nom de la chaîne YouTube
+        function getItemChannel(item) {
+            if (!item) return '';
+            if (item.channel && item.channel.trim()) return item.channel.trim();
+            const title = item.title || '';
+            // Motif @Chaine (ex: @LeoTechMaker, @matthiasbaccino)
+            let m = title.match(/@([a-zA-Z0-9_\u00C0-\u017F]+)/);
+            if (m) return '@' + m[1];
+            // Motif barre verticale (ex: Documentaire | ARTE -> ARTE)
+            let parts = title.split(/[|｜]/);
+            if (parts.length > 1) {
+                let last = parts[parts.length - 1].trim();
+                if (last.length >= 2 && last.length <= 35 && !last.match(/^(ep|saison|partie|vol|part|suite|4k|1080p|720p)/i)) {
+                    return last;
+                }
+            }
+            // Motif tiret (ex: Jean-Marc Jancovici - FIGURES -> FIGURES)
+            let dashParts = title.split(' - ');
+            if (dashParts.length > 1) {
+                let last = dashParts[dashParts.length - 1].trim();
+                if (last.length >= 2 && last.length <= 30 && !last.match(/^(best-of|remix|clip|officiel|live|ep|vol|partie)/i)) {
+                    return last;
+                }
+            }
+            return '';
+        }
+
+        // Mise à jour dynamique de la liste des chaînes
+        function updateChannelFilterOptions() {
+            const select = document.getElementById('channel-filter');
+            if (!select) return;
+            const currentVal = select.value;
+
+            const channelMap = new Map();
+            allData.forEach(item => {
+                if (item.statut === 'Termine') {
+                    const ch = getItemChannel(item);
+                    if (ch) {
+                        channelMap.set(ch, (channelMap.get(ch) || 0) + 1);
+                    }
+                }
+            });
+
+            const sortedChannels = Array.from(channelMap.entries()).sort((a, b) => {
+                if (b[1] !== a[1]) return b[1] - a[1];
+                return a[0].localeCompare(b[0], 'fr');
+            });
+
+            let opts = '<option value="">📺 Toutes les chaînes</option>';
+            sortedChannels.forEach(([ch, count]) => {
+                const isSel = (ch === currentVal) ? 'selected' : '';
+                opts += `<option value="${escapeHTML(ch)}" ${isSel}>${escapeHTML(ch)} (${count})</option>`;
+            });
+
+            select.innerHTML = opts;
+            select.value = currentVal;
+            if (select.value !== currentVal) {
+                select.value = '';
+            }
+        }
+
+        function filterByChannel(channel) {
+            const select = document.getElementById('channel-filter');
+            if (select) {
+                select.value = channel;
+                renderCards();
+            }
+        }
+
         // Récupération de la liste filtrée pour l'onglet courant
         function getFilteredList() {
             const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
@@ -2232,6 +2296,13 @@
                 list = allData.filter(i => i.statut === 'Erreur');
             }
 
+            // Filtre par chaîne
+            const channelSelect = document.getElementById('channel-filter');
+            const selectedChannel = channelSelect ? channelSelect.value : '';
+            if (selectedChannel) {
+                list = list.filter(i => getItemChannel(i) === selectedChannel);
+            }
+
             // Tri
             const sort = document.getElementById('sort-select').value;
             if (sort === 'recent') {
@@ -2246,9 +2317,14 @@
                 list.sort((a, b) => (parseInt(b.duration) || 0) - (parseInt(a.duration) || 0));
             }
 
-            // Recherche
+            // Recherche (titre, ID, ou chaîne)
             if (searchVal) {
-                list = list.filter(i => (i.title || '').toLowerCase().includes(searchVal) || (i.id || '').toLowerCase().includes(searchVal));
+                list = list.filter(i => {
+                    const t = (i.title || '').toLowerCase();
+                    const id = (i.id || '').toLowerCase();
+                    const ch = (getItemChannel(i) || '').toLowerCase();
+                    return t.includes(searchVal) || id.includes(searchVal) || ch.includes(searchVal);
+                });
             }
 
             return list;
@@ -2343,7 +2419,9 @@
             }
 
             let html = '';
-            list.forEach(item => {
+            window.currentRenderedList = list;
+
+            list.forEach((item, idx) => {
                 let videoId = item.id || extractVideoId(item.url);
                 let origUrl = item.url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : '#');
                 let thumbSrc = videoId ? `https://i.ytimg.com/vi/${escapeHTML(videoId)}/mqdefault.jpg` : '';
@@ -2354,17 +2432,23 @@
                 let durationBadge = durationTxt ? `<div class="badge-duration">${durationTxt}</div>` : '';
                 let favBadge = item.fav ? `<div class="card-fav-star">⭐ Favori</div>` : '';
 
-                let itemDataJson = JSON.stringify(item).replace(/"/g, '&quot;');
+                let channelName = getItemChannel(item);
 
                 if (viewMode === 'grid') {
-                    // CASES CARREES ARRONDIES (Épurées, sans boutons en dessous)
+                    // CASES CARREES ARRONDIES (Épurées, avec badge chaîne et clic direct)
                     let thumbHtml = thumbSrc 
                         ? `<img src="${thumbSrc}" loading="lazy" class="thumb-img" alt="Thumbnail"><div class="thumb-overlay"><div class="play-icon-glow"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>` 
                         : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2.5rem;color:var(--text-muted)">🎬</div>`;
 
+                    let channelHtml = channelName ? `
+                        <div class="card-channel" onclick="event.stopPropagation(); filterByChannel('${escapeHTML(channelName)}');" title="Filtrer par la chaîne ${escapeHTML(channelName)}">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            <span>${escapeHTML(channelName)}</span>
+                        </div>` : '';
+
                     html += `
-                    <div class="card ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${itemDataJson}, event)" oncontextmenu="handleCardContextMenu(event, ${itemDataJson})">
-                        <div class="card-select-cb">
+                    <div class="card ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${idx}, event)" oncontextmenu="handleCardContextMenu(event, ${idx})">
+                        <div class="card-select-cb" onclick="event.stopPropagation(); toggleSelectItem('${escapeHTML(item.id)}')">
                             <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                         <div class="thumb-box">
@@ -2377,19 +2461,26 @@
                             <div class="card-title" title="${escapeHTML(item.title)}">
                                 ${escapeHTML(item.title)}
                             </div>
+                            ${channelHtml}
                         </div>
                     </div>`;
                 } else {
                     // VUE LISTE COMPACTE
+                    let listChannelHtml = channelName ? `
+                        <span class="list-channel-tag" onclick="event.stopPropagation(); filterByChannel('${escapeHTML(channelName)}');" title="Filtrer par cette chaîne">
+                            📺 ${escapeHTML(channelName)}
+                        </span>` : '';
+
                     html += `
-                    <div class="list-row ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${itemDataJson}, event)" oncontextmenu="handleCardContextMenu(event, ${itemDataJson})">
-                        <div class="list-select-cb">
+                    <div class="list-row ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${idx}, event)" oncontextmenu="handleCardContextMenu(event, ${idx})">
+                        <div class="list-select-cb" onclick="event.stopPropagation(); toggleSelectItem('${escapeHTML(item.id)}')">
                             <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                         <img src="${thumbSrc || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'36\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%231e293b\'/%3E%3C/svg%3E'}" class="list-thumb" alt="Thumbnail">
                         <span class="badge-format list-format ${escapeHTML(item.format || '')}">${escapeHTML((item.format || '').toUpperCase())}</span>
                         <div class="list-title" title="${escapeHTML(item.title)}">
-                            ${escapeHTML(item.title)}
+                            <span>${escapeHTML(item.title)}</span>
+                            ${listChannelHtml}
                         </div>
                         <span style="font-size:0.8rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${durationTxt}</span>
                         ${item.fav ? '<span style="color:#f59e0b">⭐</span>' : ''}
@@ -2401,7 +2492,10 @@
         }
 
         // Clic gauche sur la carte (Lance la vidéo ou sélectionne)
-        function handleCardClick(item, event) {
+        function handleCardClick(idx, event) {
+            const item = (window.currentRenderedList && window.currentRenderedList[idx]) ? window.currentRenderedList[idx] : null;
+            if (!item) return;
+
             if (isSelectMode) {
                 toggleSelectItem(item.id);
                 return;
@@ -2417,59 +2511,60 @@
         }
 
         // Clic droit sur la carte (Menu contextuel)
-        function handleCardContextMenu(e, item) {
+        function handleCardContextMenu(e, idx) {
             e.preventDefault();
+            const item = (window.currentRenderedList && window.currentRenderedList[idx]) ? window.currentRenderedList[idx] : null;
+            if (!item) return;
+            currentContextItem = item;
+
             const menu = document.getElementById('custom-context-menu');
-            const origUrl = item.url || (item.id ? `https://www.youtube.com/watch?v=${item.id}` : '');
             const isFav = item.fav === true;
 
             let itemsHtml = '';
             if (item.statut === 'Termine') {
                 itemsHtml = `
-                    <div class="context-menu-item" onclick="api('open_file', '${escapeHTML(item.path)}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('open_file')">
                         <span>▶️</span> <span>Lire le fichier</span>
                     </div>
-                    <div class="context-menu-item" onclick="api('open_folder', '${escapeHTML(item.path)}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('open_folder')">
                         <span>📁</span> <span>Ouvrir le dossier</span>
                     </div>
-                    <div class="context-menu-item" onclick="api('toggle_favorite', '${escapeHTML(item.id)}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('toggle_fav')">
                         <span>${isFav ? '☆' : '⭐'}</span> <span>${isFav ? 'Retirer des favoris' : 'Mettre en favori'}</span>
                     </div>
-                    <div class="context-menu-item" onclick="copyLink('${escapeHTML(origUrl)}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('copy_url')">
                         <span>📋</span> <span>Copier l'URL YouTube</span>
                     </div>
                     <div class="context-menu-divider"></div>
-                    <div class="context-menu-item danger" onclick="confirmDeleteItem('${escapeHTML(item.id)}', '${escapeHTML(item.path)}'); closeContextMenu();">
+                    <div class="context-menu-item danger" onclick="triggerContextAction('delete_item')">
                         <span>🗑️</span> <span>Retirer de l'historique</span>
                     </div>
-                    <div class="context-menu-item danger" onclick="confirmDeleteFile('${escapeHTML(item.path)}'); closeContextMenu();">
+                    <div class="context-menu-item danger" onclick="triggerContextAction('delete_file')">
                         <span>🔥</span> <span>Supprimer le fichier du disque</span>
                     </div>
                 `;
             } else if (item.statut === 'Erreur') {
-                let safeErr = escapeHTML(item.error || '').replace(/'/g, "\\'");
-                let safeTitle = escapeHTML(item.title || '').replace(/'/g, "\\'");
                 itemsHtml = `
-                    <div class="context-menu-item" onclick="api('retry_error', '${escapeHTML(item.id)}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('retry_error')">
                         <span>🔄</span> <span>Réessayer le téléchargement</span>
                     </div>
-                    <div class="context-menu-item" onclick="showErrorModal('${safeTitle}', '${safeErr}'); closeContextMenu();">
+                    <div class="context-menu-item" onclick="triggerContextAction('error_detail')">
                         <span>🔍</span> <span>Voir le détail de l'erreur</span>
                     </div>
                     <div class="context-menu-divider"></div>
-                    <div class="context-menu-item danger" onclick="api('delete_error', '${escapeHTML(item.id)}'); closeContextMenu();">
+                    <div class="context-menu-item danger" onclick="triggerContextAction('delete_error')">
                         <span>🗑️</span> <span>Supprimer l'erreur</span>
                     </div>
                 `;
             } else if (item.statut === 'En cours') {
                 itemsHtml = `
-                    <div class="context-menu-item danger" onclick="api('stop', ''); closeContextMenu();">
+                    <div class="context-menu-item danger" onclick="triggerContextAction('stop_download')">
                         <span>🛑</span> <span>Arrêter le téléchargement</span>
                     </div>
                 `;
             } else if (item.statut === 'En attente') {
                 itemsHtml = `
-                    <div class="context-menu-item danger" onclick="api('remove_queue', '${escapeHTML(item.url)}'); closeContextMenu();">
+                    <div class="context-menu-item danger" onclick="triggerContextAction('remove_queue')">
                         <span>❌</span> <span>Retirer de la file</span>
                     </div>
                 `;
@@ -2489,6 +2584,38 @@
 
             menu.style.left = x + 'px';
             menu.style.top = y + 'px';
+        }
+
+        // Exécution de l'action du menu contextuel sans aucun bug d'échappement
+        function triggerContextAction(action) {
+            if (!currentContextItem) return;
+            const item = currentContextItem;
+            closeContextMenu();
+
+            if (action === 'open_file') {
+                api('open_file', item.path);
+            } else if (action === 'open_folder') {
+                api('open_folder', item.path);
+            } else if (action === 'toggle_fav') {
+                api('toggle_favorite', item.id);
+            } else if (action === 'copy_url') {
+                const origUrl = item.url || (item.id ? `https://www.youtube.com/watch?v=${item.id}` : '');
+                copyLink(origUrl);
+            } else if (action === 'delete_item') {
+                confirmDeleteItem(item.id, item.path);
+            } else if (action === 'delete_file') {
+                confirmDeleteFile(item.path);
+            } else if (action === 'retry_error') {
+                api('retry_error', item.id);
+            } else if (action === 'error_detail') {
+                showErrorModal(item.title || '', item.error || '');
+            } else if (action === 'delete_error') {
+                api('delete_error', item.id);
+            } else if (action === 'stop_download') {
+                api('stop', '');
+            } else if (action === 'remove_queue') {
+                api('remove_queue', item.url);
+            }
         }
 
         function closeContextMenu() {
