@@ -1,4 +1,4 @@
-class Socket
+﻿class Socket
 {
 	static WM_SOCKET := 0x9987, MSG_PEEK := 2
 	static FD_READ := 1, FD_ACCEPT := 8, FD_CLOSE := 32
@@ -63,6 +63,9 @@ class Socket
 			if ((this.Socket := DllCall("Ws2_32\socket", "Int", NumGet(Next+0, 4, "Int")
 				, "Int", this.SocketType, "Int", this.ProtocolId, "UInt")) != -1)
 			{
+				VarSetCapacity(optVal, 4, 0)
+				NumPut(1, optVal, 0, "Int")
+				DllCall("Ws2_32\setsockopt", "UInt", this.Socket, "Int", 0xFFFF, "Int", 0x0004, "Ptr", &optVal, "Int", 4)
 				if (DllCall("Ws2_32\bind", "UInt", this.Socket, "Ptr", ai_addr
 					, "UInt", ai_addrlen, "Int") == 0)
 				{
@@ -94,16 +97,25 @@ class Socket
 	
 	Disconnect()
 	{
-		; Return 0 if not connected
 		if (this.Socket == -1)
 			return 0
 		
-		; Unregister the socket event handler and close the socket
 		this.EventProcUnregister()
-		if (DllCall("Ws2_32\closesocket", "UInt", this.Socket, "Int") == -1)
-			throw Exception("Error closing socket",, this.GetLastError())
+		try {
+			DllCall("Ws2_32\closesocket", "UInt", this.Socket, "Int")
+		}
 		this.Socket := -1
 		return 1
+	}
+	
+	OnRecv()
+	{
+	}
+	OnAccept()
+	{
+	}
+	OnDisconnect()
+	{
 	}
 	
 	MsgSize()
@@ -185,7 +197,10 @@ class Socket
 		else if (lParam & this.FD_ACCEPT)
 			this.onAccept()
 		else if (lParam & this.FD_CLOSE)
-			this.EventProcUnregister(), this.OnDisconnect()
+		{
+			this.EventProcUnregister()
+			try this.OnDisconnect()
+		}
 	}
 	
 	EventProcRegister(lEvent)

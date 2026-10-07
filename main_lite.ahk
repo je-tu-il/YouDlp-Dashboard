@@ -29,7 +29,7 @@ Menu, Tray, Add, 🔄 Mettre à jour et ré-empaqueter yt-dlp, MenuUpdateYtDlp
 Menu, Tray, Add
 Menu, Tray, Add, ♻ Redémarrer, MenuReload
 Menu, Tray, Add, ❌ Quitter, MenuExit
-Menu, Tray, Tip, YouDlp Dashboard (Actif sur :9000)
+Menu, Tray, Tip, YouDlp Dashboard Lite (Actif sur :9000)
 
 ; ------------------------------------------------------------------------------
 ; VARIABLES GLOBALES
@@ -66,14 +66,11 @@ global SettingAutoClosePopup := 12
 global SettingClipboardMonitor := 1
 
 LoadSettings() {
-    defaultMP4 := FileExist("E:\Reste\Upload") ? "E:\Reste\Upload" : (A_ScriptDir "\Downloads\MP4")
-    defaultMP3 := FileExist("E:\Reste\Podcast") ? "E:\Reste\Podcast" : (A_ScriptDir "\Downloads\MP3")
-
     IniRead, SettingSyncFile, %A_ScriptDir%\db\settings.ini, General, SyncthingFile, E:\Reste\Docs\Notes\DOWNLOAD.txt
     IniRead, SettingTheme, %A_ScriptDir%\db\settings.ini, General, Theme, dark
     IniRead, SettingAutoRetry, %A_ScriptDir%\db\settings.ini, General, AutoRetry, 0
-    IniRead, SettingPathMP4, %A_ScriptDir%\db\settings.ini, Paths, MP4, %defaultMP4%
-    IniRead, SettingPathMP3, %A_ScriptDir%\db\settings.ini, Paths, MP3, %defaultMP3%
+    IniRead, SettingPathMP4, %A_ScriptDir%\db\settings.ini, Paths, MP4, E:\Reste\Upload
+    IniRead, SettingPathMP3, %A_ScriptDir%\db\settings.ini, Paths, MP3, E:\Reste\Podcast
     IniRead, SettingLabelMP4, %A_ScriptDir%\db\settings.ini, UI, LabelMP4, MP4 (Vidéo)
     IniRead, SettingLabelMP3, %A_ScriptDir%\db\settings.ini, UI, LabelMP3, MP3 (Audio)
     IniRead, SettingQuality, %A_ScriptDir%\db\settings.ini, Quality, VideoQuality, 720
@@ -81,22 +78,6 @@ LoadSettings() {
     IniRead, SettingSponsorBlock, %A_ScriptDir%\db\settings.ini, General, SponsorBlock, 1
     IniRead, SettingAutoClosePopup, %A_ScriptDir%\db\settings.ini, UI, AutoClosePopup, 12
     IniRead, SettingClipboardMonitor, %A_ScriptDir%\db\settings.ini, General, ClipboardMonitor, 1
-
-    ; S'assurer que les dossiers de destination existent physiquement
-    try {
-        FileCreateDir, %SettingPathMP4%
-    }
-    if (!FileExist(SettingPathMP4)) {
-        SettingPathMP4 := A_ScriptDir "\Downloads\MP4"
-        FileCreateDir, %SettingPathMP4%
-    }
-    try {
-        FileCreateDir, %SettingPathMP3%
-    }
-    if (!FileExist(SettingPathMP3)) {
-        SettingPathMP3 := A_ScriptDir "\Downloads\MP3"
-        FileCreateDir, %SettingPathMP3%
-    }
 
     if (SettingClipboardMonitor = 1)
         Menu, Tray, Check, 📋 Surveillance Presse-papiers
@@ -118,31 +99,9 @@ global BinDir := A_ScriptDir "\bin"
 IfNotExist, %BinDir%
     FileCreateDir, %BinDir%
 
-global YtDlpExe := BinDir "\yt-dlp.exe"
-IfNotExist, %YtDlpExe%
-{
-    FileInstall, bin\yt-dlp.exe, %YtDlpExe%, 0
-}
-if (FileExist(YtDlpExe)) {
-    FileGetSize, szYt, %YtDlpExe%
-    if (szYt < 1000000)
-        FileInstall, bin\yt-dlp.exe, %YtDlpExe%, 1
-}
-if (!FileExist(YtDlpExe) && FileExist("E:\App\Pc\Installer\Cmd\Path\yt-dlp.exe"))
-    YtDlpExe := "E:\App\Pc\Installer\Cmd\Path\yt-dlp.exe"
-
-global FfmpegExe := BinDir "\ffmpeg.exe"
-IfNotExist, %FfmpegExe%
-{
-    FileInstall, bin\ffmpeg.exe, %FfmpegExe%, 0
-}
-if (FileExist(FfmpegExe)) {
-    FileGetSize, szFf, %FfmpegExe%
-    if (szFf < 1000000)
-        FileInstall, bin\ffmpeg.exe, %FfmpegExe%, 1
-}
-if (!FileExist(FfmpegExe) && FileExist("E:\App\Pc\Installer\Cmd\Path\ffmpeg\bin\ffmpeg.exe"))
-    FfmpegExe := "E:\App\Pc\Installer\Cmd\Path\ffmpeg\bin\ffmpeg.exe"
+; [Version Lite : utilise yt-dlp et ffmpeg du systeme / PATH]
+global YtDlpExe := FileExist(BinDir "\yt-dlp.exe") ? (BinDir "\yt-dlp.exe") : (FileExist("E:\App\Pc\Installer\Cmd\Path\yt-dlp.exe") ? "E:\App\Pc\Installer\Cmd\Path\yt-dlp.exe" : "yt-dlp.exe")
+global FfmpegExe := FileExist(BinDir "\ffmpeg.exe") ? (BinDir "\ffmpeg.exe") : (FileExist("E:\App\Pc\Installer\Cmd\Path\ffmpeg\bin\ffmpeg.exe") ? "E:\App\Pc\Installer\Cmd\Path\ffmpeg\bin\ffmpeg.exe" : "ffmpeg.exe")
 
 ; Ajout dynamique du dossier bin et FFmpeg au PATH pour yt-dlp
 EnvGet, curPath, PATH
@@ -177,8 +136,8 @@ if (!bound) {
 ; Démarrer le worker de file d'attente
 SetTimer, ProcessQueue, 3000
 
-; Vérification et mise à jour automatique de yt-dlp en arrière-plan (désactivé au démarrage direct)
-; SetTimer, AutoCheckYtDlpStartup, -6000
+; Vérification et mise à jour automatique de yt-dlp en arrière-plan (6s après lancement)
+SetTimer, AutoCheckYtDlpStartup, -6000
 
 ; ------------------------------------------------------------------------------
 ; SURVEILLANCE DU PRESSE-PAPIERS
