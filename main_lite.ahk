@@ -112,10 +112,21 @@ if (FileExist(ffmpegSysDir) && !InStr(curPath, ffmpegSysDir))
     EnvSet, PATH, ffmpegSysDir . ";" . curPath
 
 ; ------------------------------------------------------------------------------
+; GESTION INSTANCE UNIQUE VIA MUTEX
+; ------------------------------------------------------------------------------
+global hMutex := DllCall("CreateMutex", "Ptr", 0, "Int", 1, "Str", "YouDlpDashboardMutexInstance")
+if (DllCall("GetLastError") = 183) { ; ERROR_ALREADY_EXISTS
+    ; Une instance de YouDlp tourne déjà en tâche de fond !
+    ; Re-cliquer sur le raccourci ouvre l'interface dans le navigateur !
+    Run, http://localhost:9000/
+    ExitApp
+}
+
+; ------------------------------------------------------------------------------
 ; DEMARRAGE DU SERVEUR HTTP
 ; ------------------------------------------------------------------------------
 bound := false
-Loop, 5 {
+Loop, 30 {
     try {
         global Server := new HttpServer()
         Server.Bind(["0.0.0.0", 9000])
@@ -123,21 +134,16 @@ Loop, 5 {
         bound := true
         break
     } catch e {
-        Sleep, 300
+        Sleep, 500
     }
 }
 if (!bound) {
-    ; Le port 9000 est déjà occupé (YouDlp tourne déjà)
-    ; Re-cliquer sur le raccourci ouvre l'interface dans le navigateur !
-    Run, http://localhost:9000/
+    MsgBox, 16, Erreur YouDlp Dashboard, Impossible de démarrer le serveur local sur le port 9000. Veuillez vérifier qu'aucune autre application n'utilise ce port.
     ExitApp
 }
 
 ; Démarrer le worker de file d'attente
 SetTimer, ProcessQueue, 3000
-
-; Vérification et mise à jour automatique de yt-dlp en arrière-plan (6s après lancement)
-SetTimer, AutoCheckYtDlpStartup, -6000
 
 ; ------------------------------------------------------------------------------
 ; SURVEILLANCE DU PRESSE-PAPIERS
