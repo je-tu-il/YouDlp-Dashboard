@@ -1,4 +1,4 @@
-﻿#NoEnv
+#NoEnv
 #SingleInstance Off
 #Persistent
 SetWorkingDir %A_ScriptDir%
@@ -128,7 +128,8 @@ if (FileExist(ffmpegSysDir) && !InStr(curPath, ffmpegSysDir))
 ; GESTION INSTANCE UNIQUE VIA MUTEX
 ; ------------------------------------------------------------------------------
 global hMutex := DllCall("CreateMutex", "Ptr", 0, "Int", 1, "Str", "YouDlpDashboardMutexInstance")
-if (DllCall("GetLastError") = 183) { ; ERROR_ALREADY_EXISTS
+mutexErr := A_LastError
+if (mutexErr = 183) { ; ERROR_ALREADY_EXISTS
     ; Une instance de YouDlp tourne déjà en tâche de fond !
     ; Re-cliquer sur le raccourci ouvre l'interface dans le navigateur !
     Run, http://localhost:9000/
@@ -147,6 +148,9 @@ Loop, 30 {
         bound := true
         break
     } catch e {
+        try {
+            Server.Disconnect()
+        }
         Sleep, 500
     }
 }
@@ -829,14 +833,26 @@ class HttpServer extends SocketTCP {
                         } else {
                             SafeTrayTip("YouDlp", "Fichier introuvable : " . cleanTarget, 3, 2)
                         }
-                    } else if (action = "open_folder" && target != "") {
+                    } else if (action = "open_folder") {
                         cleanTarget := StrReplace(target, "\\", "\")
-                        if FileExist(cleanTarget) {
+                        folderToOpen := ""
+                        if (cleanTarget != "" && FileExist(cleanTarget)) {
                             Run, % "explorer.exe /select,""" cleanTarget """"
                         } else {
-                            SplitPath, cleanTarget, , parentDir
-                            if InStr(FileExist(parentDir), "D")
-                                Run, "%parentDir%"
+                            if (cleanTarget != "") {
+                                SplitPath, cleanTarget, , parentDir
+                                if (parentDir != "" && InStr(FileExist(parentDir), "D"))
+                                    folderToOpen := parentDir
+                            }
+                            if (folderToOpen = "") {
+                                if InStr(FileExist(SettingPathMP4), "D")
+                                    folderToOpen := SettingPathMP4
+                                else if InStr(FileExist(SettingPathMP3), "D")
+                                    folderToOpen := SettingPathMP3
+                            }
+                            if (folderToOpen != "") {
+                                Run, % "explorer.exe """ folderToOpen """"
+                            }
                         }
                     } else if (action = "delete_file" && target != "") {
                         cleanTarget := StrReplace(target, "\\", "\")

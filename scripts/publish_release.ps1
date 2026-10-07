@@ -117,20 +117,20 @@ foreach ($assetPath in $assetsToUpload) {
         } catch {}
     }
 
-    Write-Host "Upload de $fileName ($fileSizeMB Mo) vers GitHub Release..." -ForegroundColor Cyan
+    Write-Host "Upload de $fileName ($fileSizeMB Mo) vers GitHub Release via curl..." -ForegroundColor Cyan
     $uploadUri = "$uploadBase`?name=$fileName"
-    
-    $uploadHeaders = @{
-        "Authorization" = "Bearer $token"
-        "User-Agent" = "YouDlp-Dashboard-Releaser"
-        "Content-Type" = "application/octet-stream"
-    }
 
-    try {
-        $uploadResult = Invoke-RestMethod -Uri $uploadUri -Method Post -Headers $uploadHeaders -InFile $assetPath -TimeoutSec 900
-        Write-Host "  -> Upload réussi : $($uploadResult.browser_download_url)" -ForegroundColor Green
-    } catch {
-        Write-Error "Échec de l'upload pour $fileName : $($_.Exception.Message)"
+    $resp = & curl.exe -s -S -X POST `
+        -H "Authorization: Bearer $token" `
+        -H "User-Agent: YouDlp-Dashboard-Releaser" `
+        -H "Content-Type: application/octet-stream" `
+        --data-binary "@$assetPath" `
+        "$uploadUri"
+
+    if ($LASTEXITCODE -eq 0 -and $resp -match '"browser_download_url":\s*"([^"]+)"') {
+        Write-Host "  -> Upload réussi : $($matches[1])" -ForegroundColor Green
+    } else {
+        Write-Host "  -> Résultat upload : $resp" -ForegroundColor Yellow
     }
 }
 

@@ -619,13 +619,13 @@
             color: var(--text-primary);
             font-size: 0.85rem;
             outline: none;
-            width: 190px;
+            width: 240px;
             transition: all 0.2s ease;
             font-family: inherit;
         }
         .search-input:focus {
             border-color: var(--accent);
-            width: 230px;
+            width: 290px;
             box-shadow: 0 0 12px var(--accent-glow);
         }
         .search-clear {
@@ -1602,13 +1602,9 @@
             <div class="toolbar-actions">
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="search-input" class="search-input" placeholder="Rechercher titre, chaîne..." oninput="renderCards()">
+                    <input type="text" id="search-input" class="search-input" placeholder="Rechercher... (@chaîne)" oninput="renderCards()">
                     <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
                 </div>
-
-                <select id="channel-filter" class="sort-select channel-select" onchange="renderCards()" title="Filtrer par chaîne YouTube">
-                    <option value="">📺 Toutes les chaînes</option>
-                </select>
 
                 <!-- Option Sélectionner au niveau de la barre de recherche -->
                 <button class="btn-select-toggle" id="btn-select-toggle" onclick="toggleSelectMode()" title="Sélectionner plusieurs vidéos">
@@ -2018,7 +2014,6 @@
                     activeContainer.classList.remove('show');
                 }
 
-                updateChannelFilterOptions();
                 renderCards();
             } catch (err) {}
         }
@@ -2048,7 +2043,7 @@
         }
 
         // Sauvegarde des réglages
-        async function saveSettings() {
+        async function saveSettings(silent = false) {
             const payload = {
                 pathMP4: document.getElementById('set-pathmp4').value,
                 pathMP3: document.getElementById('set-pathmp3').value,
@@ -2073,7 +2068,9 @@
 
             document.documentElement.setAttribute('data-theme', payload.theme);
             closeModals();
-            showToast("Paramètres enregistrés avec succès", "success");
+            if (!silent) {
+                showToast("Paramètres enregistrés avec succès", "success");
+            }
         }
 
         // Vérification des outils système
@@ -2235,48 +2232,6 @@
             return '';
         }
 
-        // Mise à jour dynamique de la liste des chaînes
-        function updateChannelFilterOptions() {
-            const select = document.getElementById('channel-filter');
-            if (!select) return;
-            const currentVal = select.value;
-
-            const channelMap = new Map();
-            allData.forEach(item => {
-                if (item.statut === 'Termine') {
-                    const ch = getItemChannel(item);
-                    if (ch) {
-                        channelMap.set(ch, (channelMap.get(ch) || 0) + 1);
-                    }
-                }
-            });
-
-            const sortedChannels = Array.from(channelMap.entries()).sort((a, b) => {
-                if (b[1] !== a[1]) return b[1] - a[1];
-                return a[0].localeCompare(b[0], 'fr');
-            });
-
-            let opts = '<option value="">📺 Toutes les chaînes</option>';
-            sortedChannels.forEach(([ch, count]) => {
-                const isSel = (ch === currentVal) ? 'selected' : '';
-                opts += `<option value="${escapeHTML(ch)}" ${isSel}>${escapeHTML(ch)} (${count})</option>`;
-            });
-
-            select.innerHTML = opts;
-            select.value = currentVal;
-            if (select.value !== currentVal) {
-                select.value = '';
-            }
-        }
-
-        function filterByChannel(channel) {
-            const select = document.getElementById('channel-filter');
-            if (select) {
-                select.value = channel;
-                renderCards();
-            }
-        }
-
         // Récupération de la liste filtrée pour l'onglet courant
         function getFilteredList() {
             const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
@@ -2296,13 +2251,6 @@
                 list = allData.filter(i => i.statut === 'Erreur');
             }
 
-            // Filtre par chaîne
-            const channelSelect = document.getElementById('channel-filter');
-            const selectedChannel = channelSelect ? channelSelect.value : '';
-            if (selectedChannel) {
-                list = list.filter(i => getItemChannel(i) === selectedChannel);
-            }
-
             // Tri
             const sort = document.getElementById('sort-select').value;
             if (sort === 'recent') {
@@ -2317,14 +2265,23 @@
                 list.sort((a, b) => (parseInt(b.duration) || 0) - (parseInt(a.duration) || 0));
             }
 
-            // Recherche (titre, ID, ou chaîne)
+            // Recherche : si commence par '@', recherche spécifiquement dans les chaînes, sinon titre ou ID
             if (searchVal) {
-                list = list.filter(i => {
-                    const t = (i.title || '').toLowerCase();
-                    const id = (i.id || '').toLowerCase();
-                    const ch = (getItemChannel(i) || '').toLowerCase();
-                    return t.includes(searchVal) || id.includes(searchVal) || ch.includes(searchVal);
-                });
+                if (searchVal.startsWith('@')) {
+                    const chQuery = searchVal.slice(1).trim();
+                    if (chQuery.length > 0) {
+                        list = list.filter(i => {
+                            const ch = (getItemChannel(i) || '').toLowerCase();
+                            return ch.includes(chQuery);
+                        });
+                    }
+                } else {
+                    list = list.filter(i => {
+                        const t = (i.title || '').toLowerCase();
+                        const id = (i.id || '').toLowerCase();
+                        return t.includes(searchVal) || id.includes(searchVal);
+                    });
+                }
             }
 
             return list;
@@ -2435,16 +2392,10 @@
                 let channelName = getItemChannel(item);
 
                 if (viewMode === 'grid') {
-                    // CASES CARREES ARRONDIES (Épurées, avec badge chaîne et clic direct)
+                    // CASES CARREES ARRONDIES (Épurées et clic direct)
                     let thumbHtml = thumbSrc 
                         ? `<img src="${thumbSrc}" loading="lazy" class="thumb-img" alt="Thumbnail"><div class="thumb-overlay"><div class="play-icon-glow"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>` 
                         : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:2.5rem;color:var(--text-muted)">🎬</div>`;
-
-                    let channelHtml = channelName ? `
-                        <div class="card-channel" onclick="event.stopPropagation(); filterByChannel('${escapeHTML(channelName)}');" title="Filtrer par la chaîne ${escapeHTML(channelName)}">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            <span>${escapeHTML(channelName)}</span>
-                        </div>` : '';
 
                     html += `
                     <div class="card ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${idx}, event)" oncontextmenu="handleCardContextMenu(event, ${idx})">
@@ -2461,16 +2412,10 @@
                             <div class="card-title" title="${escapeHTML(item.title)}">
                                 ${escapeHTML(item.title)}
                             </div>
-                            ${channelHtml}
                         </div>
                     </div>`;
                 } else {
                     // VUE LISTE COMPACTE
-                    let listChannelHtml = channelName ? `
-                        <span class="list-channel-tag" onclick="event.stopPropagation(); filterByChannel('${escapeHTML(channelName)}');" title="Filtrer par cette chaîne">
-                            📺 ${escapeHTML(channelName)}
-                        </span>` : '';
-
                     html += `
                     <div class="list-row ${isSelected ? 'selected' : ''}" data-id="${escapeHTML(item.id)}" onclick="handleCardClick(${idx}, event)" oncontextmenu="handleCardContextMenu(event, ${idx})">
                         <div class="list-select-cb" onclick="event.stopPropagation(); toggleSelectItem('${escapeHTML(item.id)}')">
@@ -2480,7 +2425,6 @@
                         <span class="badge-format list-format ${escapeHTML(item.format || '')}">${escapeHTML((item.format || '').toUpperCase())}</span>
                         <div class="list-title" title="${escapeHTML(item.title)}">
                             <span>${escapeHTML(item.title)}</span>
-                            ${listChannelHtml}
                         </div>
                         <span style="font-size:0.8rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${durationTxt}</span>
                         ${item.fav ? '<span style="color:#f59e0b">⭐</span>' : ''}
@@ -2906,7 +2850,7 @@
             const next = current === 'dark' ? 'apple' : (current === 'apple' ? 'oled' : (current === 'oled' ? 'light' : 'dark'));
             document.documentElement.setAttribute('data-theme', next);
             document.getElementById('set-theme').value = next;
-            saveSettings();
+            saveSettings(true);
         }
 
         function previewTheme(theme) {
