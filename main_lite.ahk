@@ -3,6 +3,7 @@
 #Persistent
 SetWorkingDir %A_ScriptDir%
 FileEncoding, UTF-8
+ComObjError(false)
 #Include %A_ScriptDir%\lib\Socket.ahk
 
 ; ==============================================================================
@@ -47,6 +48,7 @@ global StateHash := ""
 global hGui := 0
 global LastClipboardURL := ""
 global LastClipboardTime := 0
+global GlobalYtDlpUpdate := ""
 
 IfNotExist, %A_ScriptDir%\db
     FileCreateDir, %A_ScriptDir%\db
@@ -785,7 +787,7 @@ class HttpServer extends SocketTCP {
                     if (SettingLastUpdateCheck != "") {
                         lastCheckStr := SubStr(SettingLastUpdateCheck, 1, 4) . "-" . SubStr(SettingLastUpdateCheck, 5, 2) . "-" . SubStr(SettingLastUpdateCheck, 7, 2)
                     }
-                    json := "{""ytdlp"":""" JsonEscape(ytdlpStatus) """,""ffmpeg"":""" JsonEscape(ffmpegStatus) """,""lastCheck"":""" JsonEscape(lastCheckStr) """}"
+                    json := "{""ytdlp"":""" JsonEscape(ytdlpStatus) """,""ffmpeg"":""" JsonEscape(ffmpegStatus) """,""lastCheck"":""" JsonEscape(lastCheckStr) """,""ytdlpUpdate"":""" JsonEscape(GlobalYtDlpUpdate) """}"
                     len := StrPut(json, "UTF-8") - 1
                     this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nCache-Control: no-store, no-cache, must-revalidate, max-age=0`r`nContent-Type: application/json; charset=UTF-8`r`nContent-Length: " len "`r`n`r`n" json)
                 } else {
@@ -864,6 +866,10 @@ class HttpServer extends SocketTCP {
                             IniDelete, %A_ScriptDir%\db\favorites.ini, Favorites, %target%
                         else
                             IniWrite, 1, %A_ScriptDir%\db\favorites.ini, Favorites, %target%
+                    } else if (action = "set_favorite" && target != "") {
+                        IniWrite, 1, %A_ScriptDir%\db\favorites.ini, Favorites, %target%
+                    } else if (action = "unset_favorite" && target != "") {
+                        IniDelete, %A_ScriptDir%\db\favorites.ini, Favorites, %target%
                     } else if (action = "delete" && target != "") {
                         newHistory := ""
                         Loop, Read, %A_ScriptDir%\db\history.txt
@@ -1112,15 +1118,16 @@ CheckWeeklyYtDlpUpdate(manual:=false) {
     latestTag := ""
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.Open("GET", "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", true)
+        whr.SetTimeouts(2000, 2000, 3000, 3000)
+        whr.Open("GET", "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", false)
         whr.SetRequestHeader("User-Agent", "YouDlp-Dashboard")
         whr.Send()
-        whr.WaitForResponse(5)
         if (whr.Status = 200) {
             resp := whr.ResponseText
             if (RegExMatch(resp, "i)""tag_name""\s*:\s*""([^""]+)""", m))
                 latestTag := m1
         }
+    } catch {
     }
 
     remoteNorm := 0
@@ -1132,18 +1139,18 @@ CheckWeeklyYtDlpUpdate(manual:=false) {
     ; 3. Décision selon la comparaison des versions
     if (remoteNorm > 0 && localNorm > 0) {
         if (remoteNorm > localNorm) {
-            ; Une nouvelle version est disponible -> Proposer à l'utilisateur
-            MsgBox, 36, YouDlp Dashboard - Mise à jour disponible, Une nouvelle version de yt-dlp est disponible !`n`nVersion actuelle : %localVer%`nNouvelle version : %latestTag%`n`nSouhaitez-vous installer la mise à jour maintenant ?
-            IfMsgBox, Yes
-            {
+            GlobalYtDlpUpdate := latestTag
+            if (manual) {
                 DoUpdateYtDlp(latestTag)
+            } else {
+                SafeTrayTip("YouDlp Dashboard", "Mise à jour disponible pour yt-dlp (" . latestTag . ")", 4, 1)
             }
         } else {
+            GlobalYtDlpUpdate := ""
             if (manual)
                 SafeTrayTip("YouDlp Dashboard", "yt-dlp est déjà à jour (version " . localVer . ").", 3, 1)
         }
     } else {
-        ; En cas d'échec requête réseau (hors-ligne ou rate-limit), fallback yt-dlp -U si action manuelle
         if (manual) {
             DoUpdateYtDlp()
         }
