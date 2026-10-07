@@ -18,15 +18,28 @@ YouDlp Dashboard est désormais distribué en 2 éditions adaptées à tous les 
 
 ---
 
-## 🔄 Mise à Jour Automatique & Ré-empaquetage de yt-dlp
+## 🔄 Vérification Hebdomadaire & Mise à Jour Autonome de yt-dlp
 
-YouDlp Dashboard intègre un système complet et autonome de mise à jour :
-1. **Au démarrage de l'application** : Une vérification discrète en tâche de fond (après 6 secondes) contrôle si une nouvelle version de `yt-dlp` est disponible.
-2. **Sur incident de téléchargement** : Si YouTube modifie ses protocoles et provoque un échec, YouDlp Dashboard déclenche immédiatement une mise à jour de `yt-dlp`.
-3. **Ré-empaquetage automatique** : Dès qu'une nouvelle version de `yt-dlp` est téléchargée, l'application ré-empaquète automatiquement l'exécutable Standalone pour que votre binaire contienne toujours la version la plus récente !
-4. **Mise à jour manuelle en 1 clic** :
-   - Soit depuis l'icône de la barre des tâches : clic droit > **🔄 Mettre à jour et ré-empaqueter yt-dlp**.
-   - Soit via le script batch [`Mettre a jour et Recompiler.bat`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/Mettre%20a%20jour%20et%20Recompiler.bat).
+YouDlp Dashboard intègre un système robuste et intelligent de gestion des versions :
+1. **Vérification automatique hebdomadaire (tous les 7 jours)** :
+   - L'application vérifie discrètement (6 secondes après le démarrage, puis toutes les 24h) si 7 jours se sont écoulés depuis la dernière analyse.
+   - Si c'est le cas, elle interroge l'API GitHub officielle de `yt-dlp`.
+   - Si une nouvelle version est détectée, une boîte de dialogue conviviale vous **propose la mise à jour** (Oui / Non).
+2. **Fonctionnement garanti pour l'utilisateur Standalone** :
+   - Lorsque vous acceptez la mise à jour (ou si vous cliquez sur **🔄 Vérifier / Mettre à jour yt-dlp** dans l'interface), le fichier `bin\yt-dlp.exe` est téléchargé et mis à jour directement sur votre disque.
+   - **L'exécutable fonctionne IMMÉDIATEMENT avec la nouvelle version**, sans avoir besoin d'AutoHotkey, de compilateur, ni d'aucun outil de développement externe !
+   - Si l'environnement de développement AutoHotkey est présent, l'application ré-empaquète également les `.exe` du dossier `Release/`.
+3. **Mise à jour manuelle en 1 clic** :
+   - Depuis le Dashboard Web (icône ⚙ Paramètres > **🔄 Vérifier / Mettre à jour yt-dlp**).
+   - Depuis la barre des tâches : clic droit sur l'icône Tray > **🔄 Mettre à jour et ré-empaqueter yt-dlp**.
+
+---
+
+## 🔔 Gestion Silencieuse des Notifications
+
+Pour les utilisateurs préférant un fonctionnement 100% silencieux sans bulles système Windows :
+- **Désactivation en 1 clic** : cochez ou décochez l'option dans la fenêtre des Paramètres (icône ⚙) du Dashboard Web, ou via le menu de la barre des tâches (clic droit sur l'icône Tray > **🔔 Notifications système**).
+- Lorsque l'option est désactivée, **aucune bulle de notification (TrayTip)** n'apparaît, rendant l'application parfaitement discrète.
 
 ---
 

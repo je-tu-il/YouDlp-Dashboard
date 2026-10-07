@@ -1404,6 +1404,11 @@
                 <label for="set-clipboardmonitor">Surveillance automatique du presse-papiers active</label>
             </div>
 
+            <div class="form-group checkbox-row">
+                <input type="checkbox" id="set-notifications" checked>
+                <label for="set-notifications">Afficher les notifications système (TrayTip Windows)</label>
+            </div>
+
             <div class="form-group">
                 <label>Délai de fermeture du popup flottant (secondes, 0 = désactivé)</label>
                 <input type="number" id="set-autoclosepopup" min="0" max="60" value="12">
@@ -1411,11 +1416,12 @@
 
             <div class="form-group" style="background:var(--input-bg); padding:0.8rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle)">
                 <div style="font-weight:700; margin-bottom:0.4rem; font-size:0.85rem;">État des dépendances système :</div>
-                <div style="font-size:0.82rem; color:var(--text-secondary); display:flex; justify-content:space-between;">
+                <div style="font-size:0.82rem; color:var(--text-secondary); display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
                     <span>yt-dlp : <strong id="sys-ytdlp" style="color:var(--text-primary)">Vérification...</strong></span>
                     <span>ffmpeg : <strong id="sys-ffmpeg" style="color:var(--text-primary)">Vérification...</strong></span>
                 </div>
-                <button class="btn-card" style="margin-top:0.6rem; width:100%" onclick="updateYtDlp()">🔄 Mettre à jour yt-dlp maintenant</button>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem;">Vérification automatique (hebdomadaire) : <span id="sys-lastcheck">...</span></div>
+                <button class="btn-card" style="margin-top:0.6rem; width:100%" onclick="updateYtDlp()">🔄 Vérifier / Mettre à jour yt-dlp</button>
             </div>
 
             <div class="modal-actions">
@@ -1615,6 +1621,7 @@
                 document.getElementById('set-pathmp3').value = data.pathMP3 || '';
                 document.getElementById('set-syncfile').value = data.syncFile || '';
                 document.getElementById('set-theme').value = data.theme || 'dark';
+                document.getElementById('set-notifications').checked = data.notifications !== undefined ? (data.notifications == 1) : true;
                 document.getElementById('set-autoretry').checked = data.autoRetry == 1;
                 document.getElementById('set-sponsorblock').checked = data.sponsorBlock == 1;
                 document.getElementById('set-clipboardmonitor').checked = data.clipboardMonitor == 1;
@@ -1633,6 +1640,7 @@
                 pathMP3: document.getElementById('set-pathmp3').value,
                 syncFile: document.getElementById('set-syncfile').value,
                 theme: document.getElementById('set-theme').value,
+                notifications: document.getElementById('set-notifications').checked ? 1 : 0,
                 autoRetry: document.getElementById('set-autoretry').checked ? 1 : 0,
                 sponsorBlock: document.getElementById('set-sponsorblock').checked ? 1 : 0,
                 clipboardMonitor: document.getElementById('set-clipboardmonitor').checked ? 1 : 0,
@@ -1661,12 +1669,15 @@
                 const data = await res.json();
                 document.getElementById('sys-ytdlp').innerText = data.ytdlp || 'OK';
                 document.getElementById('sys-ffmpeg').innerText = data.ffmpeg || 'OK';
+                const lastCheckEl = document.getElementById('sys-lastcheck');
+                if (lastCheckEl) lastCheckEl.innerText = data.lastCheck || 'Jamais';
             } catch (e) {}
         }
 
         function updateYtDlp() {
             api('update_ytdlp', '');
-            showToast("Mise à jour de yt-dlp lancée en arrière-plan...", "info");
+            showToast("Vérification / Mise à jour de yt-dlp lancée...", "info");
+            setTimeout(checkSystemInfo, 3000);
         }
 
         // Lancement d'un téléchargement via la barre Quick Add

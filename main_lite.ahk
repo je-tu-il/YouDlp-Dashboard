@@ -22,6 +22,8 @@ Menu, Tray, Add, 🎵 Dossier Musiques (MP3), MenuOpenMP3
 Menu, Tray, Add
 Menu, Tray, Add, 📋 Surveillance Presse-papiers, MenuToggleClipboard
 Menu, Tray, Check, 📋 Surveillance Presse-papiers
+Menu, Tray, Add, 🔔 Notifications système, MenuToggleNotifications
+Menu, Tray, Check, 🔔 Notifications système
 Menu, Tray, Add, 🚀 Lancer au démarrage de Windows, MenuToggleStartup
 IfExist, %A_Startup%\YouDlp-Dashboard.lnk
     Menu, Tray, Check, 🚀 Lancer au démarrage de Windows
@@ -64,6 +66,8 @@ global SettingAudioQuality := "128k"
 global SettingSponsorBlock := 1
 global SettingAutoClosePopup := 12
 global SettingClipboardMonitor := 1
+global SettingNotifications := 1
+global SettingLastUpdateCheck := ""
 
 LoadSettings() {
     IniRead, SettingSyncFile, %A_ScriptDir%\db\settings.ini, General, SyncthingFile, E:\Reste\Docs\Notes\DOWNLOAD.txt
@@ -78,11 +82,18 @@ LoadSettings() {
     IniRead, SettingSponsorBlock, %A_ScriptDir%\db\settings.ini, General, SponsorBlock, 1
     IniRead, SettingAutoClosePopup, %A_ScriptDir%\db\settings.ini, UI, AutoClosePopup, 12
     IniRead, SettingClipboardMonitor, %A_ScriptDir%\db\settings.ini, General, ClipboardMonitor, 1
+    IniRead, SettingNotifications, %A_ScriptDir%\db\settings.ini, General, Notifications, 1
+    IniRead, SettingLastUpdateCheck, %A_ScriptDir%\db\settings.ini, General, LastUpdateCheck, %A_Space%
 
     if (SettingClipboardMonitor = 1)
         Menu, Tray, Check, 📋 Surveillance Presse-papiers
     else
         Menu, Tray, Uncheck, 📋 Surveillance Presse-papiers
+
+    if (SettingNotifications = 1)
+        Menu, Tray, Check, 🔔 Notifications système
+    else
+        Menu, Tray, Uncheck, 🔔 Notifications système
 }
 LoadSettings()
 
@@ -145,6 +156,10 @@ if (!bound) {
 ; Démarrer le worker de file d'attente
 SetTimer, ProcessQueue, 3000
 
+; Vérification hebdomadaire des mises à jour de yt-dlp
+SetTimer, TimerWeeklyCheck, -6000
+SetTimer, TimerWeeklyCheck, 86400000
+
 ; ------------------------------------------------------------------------------
 ; SURVEILLANCE DU PRESSE-PAPIERS
 ; ------------------------------------------------------------------------------
@@ -163,7 +178,7 @@ Loop, %0%
 if (shouldOpen) {
     Run, http://localhost:9000/
 } else {
-    TrayTip, YouDlp Dashboard, Prêt en arrière-plan (Ctrl+Alt+H pour ouvrir le Dashboard), 2, 1
+    SafeTrayTip("YouDlp Dashboard", "Prêt en arrière-plan (Ctrl+Alt+H pour ouvrir le Dashboard)", 2, 1)
 }
 return ; Fin de la section auto-execute
 
@@ -383,7 +398,7 @@ ProcessQueue:
                     safeT := StrReplace(safeT, "`r", "")
                     FileAppend, %safeT%|||%matchedFile%|||%CurrentDownloadVidID%|||%CurrentDownloadType%|||0`n, %histFile%
                 }
-                TrayTip, YouDlp Dashboard, Téléchargement terminé avec succès !, 3, 1
+                SafeTrayTip("YouDlp Dashboard", "Téléchargement terminé avec succès !", 3, 1)
             } else {
                 cleanVid := CurrentDownloadVidID ? CurrentDownloadVidID : "inconnu"
                 cleanT := CurrentDownloadTitle ? CurrentDownloadTitle : "Échec"
@@ -563,6 +578,13 @@ ExtractVideoID(url) {
 
 ShowHistory() {
     Run, http://localhost:9000/
+}
+
+SafeTrayTip(title, text, timeout:=2, options:=1) {
+    global SettingNotifications
+    if (SettingNotifications = 1) {
+        TrayTip, %title%, %text%, %timeout%, %options%
+    }
 }
 
 ; ------------------------------------------------------------------------------
@@ -745,12 +767,25 @@ class HttpServer extends SocketTCP {
                     json .= """audioQuality"":""" JsonEscape(SettingAudioQuality) ""","
                     json .= """sponsorBlock"":" SettingSponsorBlock ","
                     json .= """autoClosePopup"":" SettingAutoClosePopup ","
-                    json .= """clipboardMonitor"":" SettingClipboardMonitor
+                    json .= """clipboardMonitor"":" SettingClipboardMonitor ","
+                    json .= """notifications"":" SettingNotifications
                     json .= "}"
                     len := StrPut(json, "UTF-8") - 1
                     this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nCache-Control: no-store, no-cache, must-revalidate, max-age=0`r`nContent-Type: application/json; charset=UTF-8`r`nContent-Length: " len "`r`n`r`n" json)
                 } else if (path = "/api/sysinfo") {
-                    json := "{""ytdlp"":""2026.08.19 (Opérationnel)"",""ffmpeg"":""Disponible""}"
+                    ytdlpStatus := "Disponible"
+                    targetYt := YtDlpExe ? YtDlpExe : (A_ScriptDir "\bin\yt-dlp.exe")
+                    if FileExist(targetYt) {
+                        FileGetVersion, ytVer, %targetYt%
+                        if (ytVer != "")
+                            ytdlpStatus := ytVer . " (Opérationnel)"
+                    }
+                    ffmpegStatus := FileExist(FfmpegExe) ? "Disponible" : "Non détecté"
+                    lastCheckStr := "Jamais"
+                    if (SettingLastUpdateCheck != "") {
+                        lastCheckStr := SubStr(SettingLastUpdateCheck, 1, 4) . "-" . SubStr(SettingLastUpdateCheck, 5, 2) . "-" . SubStr(SettingLastUpdateCheck, 7, 2)
+                    }
+                    json := "{""ytdlp"":""" JsonEscape(ytdlpStatus) """,""ffmpeg"":""" JsonEscape(ffmpegStatus) """,""lastCheck"":""" JsonEscape(lastCheckStr) """}"
                     len := StrPut(json, "UTF-8") - 1
                     this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nCache-Control: no-store, no-cache, must-revalidate, max-age=0`r`nContent-Type: application/json; charset=UTF-8`r`nContent-Length: " len "`r`n`r`n" json)
                 } else {
@@ -789,7 +824,7 @@ class HttpServer extends SocketTCP {
                         if FileExist(cleanTarget) {
                             Run, "%cleanTarget%"
                         } else {
-                            TrayTip, YouDlp, Fichier introuvable : %cleanTarget%, 3, 2
+                            SafeTrayTip("YouDlp", "Fichier introuvable : " . cleanTarget, 3, 2)
                         }
                     } else if (action = "open_folder" && target != "") {
                         cleanTarget := StrReplace(target, "\\", "\")
@@ -891,8 +926,8 @@ class HttpServer extends SocketTCP {
                             FileAppend, %newErrors%, %A_ScriptDir%\db\errors.txt
                         if (requeueUrl != "")
                             FileAppend, %requeueUrl%|%requeueFormat%|%requeueTitle%`n, %A_ScriptDir%\db\queue.txt
-                    } else if (action = "update_ytdlp") {
-                        SetTimer, AsyncUpdateYtDlp, -50
+                    } else if (action = "update_ytdlp" || action = "check_update") {
+                        SetTimer, AsyncManualUpdateYtDlp, -50
                     }
 
                     UpdateStateHash()
@@ -925,7 +960,7 @@ class HttpServer extends SocketTCP {
                         safeTitle := StrReplace(safeTitle, "`r", "")
                         FileAppend, %url%|%type%|%safeTitle%|%quality%`n, %A_ScriptDir%\db\queue.txt
                         UpdateStateHash()
-                        TrayTip, YouTube Downloader, %url% ajouté (%type%), 2, 1
+                        SafeTrayTip("YouTube Downloader", url . " ajouté (" . type . ")", 2, 1)
                     }
                     this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nAccess-Control-Allow-Origin: *`r`nContent-Length: 2`r`n`r`nOK")
                 } else if (path = "/api/savesettings") {
@@ -941,6 +976,7 @@ class HttpServer extends SocketTCP {
                     RegExMatch(body, """sponsorBlock""\s*:\s*(\d+)", sbMatch)
                     RegExMatch(body, """autoClosePopup""\s*:\s*(\d+)", acpMatch)
                     RegExMatch(body, """clipboardMonitor""\s*:\s*(\d+)", cbmMatch)
+                    RegExMatch(body, """notifications""\s*:\s*(\d+)", notifMatch)
 
                     IniWrite, % StrReplace(syncFileMatch1, "\\", "\"), %A_ScriptDir%\db\settings.ini, General, SyncthingFile
                     IniWrite, % themeMatch1, %A_ScriptDir%\db\settings.ini, General, Theme
@@ -954,6 +990,8 @@ class HttpServer extends SocketTCP {
                     IniWrite, % sbMatch1, %A_ScriptDir%\db\settings.ini, General, SponsorBlock
                     IniWrite, % acpMatch1, %A_ScriptDir%\db\settings.ini, UI, AutoClosePopup
                     IniWrite, % cbmMatch1, %A_ScriptDir%\db\settings.ini, General, ClipboardMonitor
+                    if (notifMatch1 != "")
+                        IniWrite, % notifMatch1, %A_ScriptDir%\db\settings.ini, General, Notifications
 
                     LoadSettings()
                     this.SendText("HTTP/1.1 200 OK`r`nAccess-Control-Allow-Origin: *`r`nConnection: close`r`nContent-Length: 2`r`n`r`nOK")
@@ -992,10 +1030,21 @@ MenuToggleClipboard:
     IniWrite, %SettingClipboardMonitor%, %A_ScriptDir%\db\settings.ini, General, ClipboardMonitor
     if (SettingClipboardMonitor) {
         Menu, Tray, Check, 📋 Surveillance Presse-papiers
-        TrayTip, YouDlp, Surveillance du presse-papiers activée, 2, 1
+        SafeTrayTip("YouDlp", "Surveillance du presse-papiers activée", 2, 1)
     } else {
         Menu, Tray, Uncheck, 📋 Surveillance Presse-papiers
-        TrayTip, YouDlp, Surveillance du presse-papiers désactivée, 2, 1
+        SafeTrayTip("YouDlp", "Surveillance du presse-papiers désactivée", 2, 1)
+    }
+return
+
+MenuToggleNotifications:
+    SettingNotifications := !SettingNotifications
+    IniWrite, %SettingNotifications%, %A_ScriptDir%\db\settings.ini, General, Notifications
+    if (SettingNotifications) {
+        Menu, Tray, Check, 🔔 Notifications système
+        SafeTrayTip("YouDlp Dashboard", "Notifications système activées", 2, 1)
+    } else {
+        Menu, Tray, Uncheck, 🔔 Notifications système
     }
 return
 
@@ -1004,7 +1053,7 @@ MenuToggleStartup:
     if FileExist(startupShortcut) {
         FileDelete, %startupShortcut%
         Menu, Tray, Uncheck, 🚀 Lancer au démarrage de Windows
-        TrayTip, YouDlp Dashboard, Démarrage automatique désactivé, 2, 1
+        SafeTrayTip("YouDlp Dashboard", "Démarrage automatique désactivé", 2, 1)
     } else {
         targetExe := A_ScriptDir "\YouDlp-Dashboard.exe"
         if !FileExist(targetExe)
@@ -1013,42 +1062,114 @@ MenuToggleStartup:
             targetExe := A_ScriptFullPath
         FileCreateShortcut, %targetExe%, %startupShortcut%, %A_ScriptDir%, --silent, YouDlp Dashboard, %A_ScriptDir%\a.ico
         Menu, Tray, Check, 🚀 Lancer au démarrage de Windows
-        TrayTip, YouDlp Dashboard, Démarrage automatique avec Windows activé, 2, 1
+        SafeTrayTip("YouDlp Dashboard", "Démarrage automatique avec Windows activé", 2, 1)
     }
 return
 
 AutoCheckYtDlpStartup:
-    CheckAndUpdateYtDlp(false)
+TimerWeeklyCheck:
+    CheckWeeklyYtDlpUpdate(false)
 return
 
+AsyncManualUpdateYtDlp:
 AsyncUpdateYtDlp:
 MenuUpdateYtDlp:
-    CheckAndUpdateYtDlp(true)
+    CheckWeeklyYtDlpUpdate(true)
 return
 
-CheckAndUpdateYtDlp(interactive:=false) {
+CheckWeeklyYtDlpUpdate(manual:=false) {
+    global SettingLastUpdateCheck, YtDlpExe
+    targetExe := YtDlpExe ? YtDlpExe : (A_ScriptDir "\bin\yt-dlp.exe")
+    if (!FileExist(targetExe))
+        return
+
+    ; Si vérification automatique périodique, vérifier si 7 jours se sont écoulés
+    if (!manual && SettingLastUpdateCheck != "") {
+        diffDays := A_Now
+        EnvSub, diffDays, %SettingLastUpdateCheck%, Days
+        if (diffDays < 7)
+            return
+    }
+
+    ; Enregistrer la date du check
+    todayStr := SubStr(A_Now, 1, 8)
+    SettingLastUpdateCheck := todayStr
+    IniWrite, %todayStr%, %A_ScriptDir%\db\settings.ini, General, LastUpdateCheck
+
+    if (manual)
+        SafeTrayTip("YouDlp Dashboard", "Vérification des mises à jour de yt-dlp...", 3, 1)
+
+    ; 1. Obtenir la version locale de yt-dlp
+    localVer := ""
+    FileGetVersion, localVer, %targetExe%
+    localNorm := 0
+    if (localVer != "") {
+        if (RegExMatch(localVer, "(\d{4})\.(\d{1,2})\.(\d{1,2})", l))
+            localNorm := l1 . SubStr("0" . l2, -1) . SubStr("0" . l3, -1)
+    }
+
+    ; 2. Interroger l'API GitHub des releases officielles de yt-dlp
+    latestTag := ""
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.Open("GET", "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", true)
+        whr.SetRequestHeader("User-Agent", "YouDlp-Dashboard")
+        whr.Send()
+        whr.WaitForResponse(5)
+        if (whr.Status = 200) {
+            resp := whr.ResponseText
+            if (RegExMatch(resp, "i)""tag_name""\s*:\s*""([^""]+)""", m))
+                latestTag := m1
+        }
+    }
+
+    remoteNorm := 0
+    if (latestTag != "") {
+        if (RegExMatch(latestTag, "(\d{4})\.(\d{1,2})\.(\d{1,2})", r))
+            remoteNorm := r1 . SubStr("0" . r2, -1) . SubStr("0" . r3, -1)
+    }
+
+    ; 3. Décision selon la comparaison des versions
+    if (remoteNorm > 0 && localNorm > 0) {
+        if (remoteNorm > localNorm) {
+            ; Une nouvelle version est disponible -> Proposer à l'utilisateur
+            MsgBox, 36, YouDlp Dashboard - Mise à jour disponible, Une nouvelle version de yt-dlp est disponible !`n`nVersion actuelle : %localVer%`nNouvelle version : %latestTag%`n`nSouhaitez-vous installer la mise à jour maintenant ?
+            IfMsgBox, Yes
+            {
+                DoUpdateYtDlp(latestTag)
+            }
+        } else {
+            if (manual)
+                SafeTrayTip("YouDlp Dashboard", "yt-dlp est déjà à jour (version " . localVer . ").", 3, 1)
+        }
+    } else {
+        ; En cas d'échec requête réseau (hors-ligne ou rate-limit), fallback yt-dlp -U si action manuelle
+        if (manual) {
+            DoUpdateYtDlp()
+        }
+    }
+    UpdateStateHash()
+}
+
+DoUpdateYtDlp(targetVersion:="") {
     global YtDlpExe
     targetExe := YtDlpExe ? YtDlpExe : (A_ScriptDir "\bin\yt-dlp.exe")
     if (!FileExist(targetExe))
         return
 
-    if (interactive)
-        TrayTip, YouDlp Dashboard, Vérification des mises à jour de yt-dlp..., 3, 1
-
-    ; Récupérer la date de modification avant
+    SafeTrayTip("YouDlp Dashboard", "Téléchargement de la mise à jour de yt-dlp...", 3, 1)
     FileGetTime, timeBefore, %targetExe%, M
-
-    ; Exécution de yt-dlp -U
     RunWait, "%targetExe%" -U, %A_ScriptDir%, Hide UseErrorLevel
-
-    ; Récupérer la date de modification après
     FileGetTime, timeAfter, %targetExe%, M
 
     if (timeAfter != "" && timeBefore != "" && timeAfter != timeBefore) {
-        TrayTip, YouDlp Dashboard, Nouvelle version de yt-dlp installée ! Ré-empaquetage en cours..., 4, 1
+        SafeTrayTip("YouDlp Dashboard", "Nouvelle version de yt-dlp installée avec succès !", 4, 1)
         RebundleAllExes()
-    } else if (interactive) {
-        TrayTip, YouDlp Dashboard, yt-dlp est déjà à jour (dernière version)., 3, 1
+    } else if (targetVersion != "") {
+        SafeTrayTip("YouDlp Dashboard", "Mise à jour de yt-dlp effectuée.", 3, 1)
+        RebundleAllExes()
+    } else {
+        SafeTrayTip("YouDlp Dashboard", "yt-dlp est déjà à jour.", 3, 1)
     }
     UpdateStateHash()
 }
@@ -1089,7 +1210,7 @@ RebundleAllExes() {
         FileCopy, %A_ScriptDir%\YouDlp-Dashboard.exe, %releaseDir%\YouDlp-Dashboard.exe, 1
     }
 
-    TrayTip, YouDlp Dashboard, Exécutables ré-empaquetés avec succès avec la nouvelle version !, 4, 1
+    SafeTrayTip("YouDlp Dashboard", "Exécutables ré-empaquetés avec succès avec la nouvelle version !", 4, 1)
 }
 
 MenuReload:
