@@ -384,7 +384,8 @@ ProcessQueue:
             if (FileExist(histFile) && CurrentDownloadVidID != "") {
                 Loop, Read, %histFile%
                 {
-                    if InStr(A_LoopReadLine, "|||" . CurrentDownloadVidID . "|||") {
+                    parts := StrSplit(A_LoopReadLine, "|||")
+                    if (parts.MaxIndex() >= 4 && parts[3] = CurrentDownloadVidID && parts[4] = CurrentDownloadType) {
                         inHist := true
                         break
                     }
@@ -395,9 +396,10 @@ ProcessQueue:
                 ; Si la vidéo était déjà téléchargée ou si after_move n'a pas réécrit dans history.txt
                 if (!inHist) {
                     targetFolder := (CurrentDownloadType = "mp3") ? SettingPathMP3 : SettingPathMP4
+                    targetExt := (CurrentDownloadType = "mp3") ? "*.mp3" : "*.*"
                     matchedFile := ""
                     if (FileExist(targetFolder)) {
-                        Loop, Files, %targetFolder%\*.*
+                        Loop, Files, %targetFolder%\%targetExt%
                         {
                             if (CurrentDownloadVidID != "" && InStr(A_LoopFileName, CurrentDownloadVidID)) {
                                 matchedFile := A_LoopFileFullPath
@@ -406,6 +408,16 @@ ProcessQueue:
                             if (CurrentDownloadTitle != "" && StrLen(CurrentDownloadTitle) > 5 && InStr(A_LoopFileName, SubStr(CurrentDownloadTitle, 1, 20))) {
                                 matchedFile := A_LoopFileFullPath
                                 break
+                            }
+                        }
+                        if (matchedFile = "") {
+                            newestTime := 0
+                            Loop, Files, %targetFolder%\%targetExt%
+                            {
+                                if (A_LoopFileTimeModified > newestTime) {
+                                    newestTime := A_LoopFileTimeModified
+                                    matchedFile := A_LoopFileFullPath
+                                }
                             }
                         }
                     }
