@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     YouDlp Dashboard - Outil de calcul et récupération des heures de téléchargement
 .DESCRIPTION

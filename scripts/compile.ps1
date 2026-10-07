@@ -8,12 +8,12 @@ if (!(Test-Path $compiler)) {
 
 # 1. Standalone
 Write-Host "Compiling Standalone..."
-& $compiler /in "$PSScriptRoot\..\main.ahk" /out "$PSScriptRoot\..\YouDlp-Dashboard-Standalone.exe" /icon "$PSScriptRoot\..\a.ico" /bin $binBase
+$proc1 = Start-Process -FilePath $compiler -ArgumentList "/in `"$PSScriptRoot\..\main.ahk`" /out `"$PSScriptRoot\..\YouDlp-Dashboard-Standalone.exe`" /icon `"$PSScriptRoot\..\a.ico`" /bin `"$binBase`"" -PassThru -Wait
 Copy-Item "$PSScriptRoot\..\YouDlp-Dashboard-Standalone.exe" "$PSScriptRoot\..\YouDlp-Dashboard.exe" -Force
 
 # 2. Lite
 Write-Host "Compiling Lite..."
-& $compiler /in "$PSScriptRoot\..\main_lite.ahk" /out "$PSScriptRoot\..\YouDlp-Dashboard-Lite.exe" /icon "$PSScriptRoot\..\a.ico" /bin $binBase
+$proc2 = Start-Process -FilePath $compiler -ArgumentList "/in `"$PSScriptRoot\..\main_lite.ahk`" /out `"$PSScriptRoot\..\YouDlp-Dashboard-Lite.exe`" /icon `"$PSScriptRoot\..\a.ico`" /bin `"$binBase`"" -PassThru -Wait
 
 # 3. Release folder
 $releaseDir = "$PSScriptRoot\..\Release"

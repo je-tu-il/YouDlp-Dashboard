@@ -487,6 +487,7 @@ ProcessQueue:
     type := parts[2]
     title := parts.MaxIndex() >= 3 ? parts[3] : url
     quality := parts.MaxIndex() >= 4 ? parts[4] : SettingQuality
+    itemSb := (parts.MaxIndex() >= 5 && parts[5] != "") ? parts[5] : SettingSponsorBlock
 
     if (url != "") {
         ; Récupération du titre réel si générique ou absent
@@ -519,8 +520,8 @@ ProcessQueue:
         histFile := A_ScriptDir "\db\history.txt"
         UpdateStateHash()
 
-        ; SponsorBlock flag
-        sbFlag := (SettingSponsorBlock = 1) ? "--sponsorblock-remove sponsor" : ""
+        ; SponsorBlock flag (retire sponsors, intros, outros, auto-promos et prévisualisations)
+        sbFlag := (itemSb = 1) ? "--sponsorblock-remove sponsor,intro,outro,selfpromo,preview" : ""
 
         ; FFmpeg location flag
         ffmpegFolder := ""
@@ -580,6 +581,18 @@ ExtractVideoID(url) {
     if RegExMatch(url, "i)(?:v=|shorts/|live/|youtu\.be/)([^?&/\s]+)", m)
         return m1
     return ""
+}
+
+UrlDecode(str) {
+    Loop
+        If RegExMatch(str, "i)(%[0-9a-f]{2})+", m) {
+            VarSetCapacity(buf, StrLen(m)//3, 0)
+            Loop, Parse, m, `%
+                If (A_Index > 1)
+                    NumPut("0x" . A_LoopField, buf, A_Index-2, "UChar")
+            str := StrReplace(str, m, StrGet(&buf, "UTF-8"))
+        } Else Break
+    Return str
 }
 
 ShowHistory() {
@@ -795,6 +808,178 @@ class HttpServer extends SocketTCP {
                     json := "{""ytdlp"":""" JsonEscape(ytdlpStatus) """,""ffmpeg"":""" JsonEscape(ffmpegStatus) """,""lastCheck"":""" JsonEscape(lastCheckStr) """,""ytdlpUpdate"":""" JsonEscape(GlobalYtDlpUpdate) """}"
                     len := StrPut(json, "UTF-8") - 1
                     this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nCache-Control: no-store, no-cache, must-revalidate, max-age=0`r`nContent-Type: application/json; charset=UTF-8`r`nContent-Length: " len "`r`n`r`n" json)
+                } else if (path = "/api/library") {
+                    metaMap := {}
+                    If FileExist(A_ScriptDir "\db\history.txt") {
+                        FileRead, hRaw, %A_ScriptDir%\db\history.txt
+                        Loop, Parse, hRaw, `n, `r
+                        {
+                            if (Trim(A_LoopField) = "")
+                                continue
+                            parts := StrSplit(A_LoopField, "|||")
+                            if (parts.MaxIndex() >= 4) {
+                                hP := parts[2]
+                                metaMap[hP] := { "title": parts[1], "id": parts[3], "format": parts[4], "duration": (parts.MaxIndex() >= 5 ? parts[5] : "0"), "channel": (parts.MaxIndex() >= 6 ? parts[6] : "") }
+                                SplitPath, hP, fName
+                                metaMap["name_" . fName] := metaMap[hP]
+                            }
+                        }
+                    }
+
+                    json := "["
+                    if InStr(FileExist(SettingPathMP4), "D") {
+                        Loop, Files, %SettingPathMP4%\*.*, F
+                        {
+                            if (A_LoopFileExt = "mp4" || A_LoopFileExt = "mkv" || A_LoopFileExt = "webm" || A_LoopFileExt = "avi" || A_LoopFileExt = "mov") {
+                                meta := metaMap[A_LoopFileLongPath]
+                                if (!meta)
+                                    meta := metaMap["name_" . A_LoopFileName]
+                                vTitle := (meta && meta.title != "") ? meta.title : SubStr(A_LoopFileName, 1, InStr(A_LoopFileName, ".", false, -1) - 1)
+                                vId := (meta && meta.id != "") ? meta.id : ""
+                                vDuration := (meta && meta.duration != "") ? meta.duration : "0"
+                                vChannel := (meta && meta.channel != "") ? meta.channel : ""
+                                
+                                sizeMB := Round(A_LoopFileSize / (1024 * 1024), 1) . " Mo"
+                                dateFormatted := SubStr(A_LoopFileTimeModified, 7, 2) . "/" . SubStr(A_LoopFileTimeModified, 5, 2) . "/" . SubStr(A_LoopFileTimeModified, 1, 4)
+
+                                json .= "{"
+                                json .= """name"":""" JsonEscape(A_LoopFileName) ""","
+                                json .= """path"":""" JsonEscape(A_LoopFileLongPath) ""","
+                                json .= """title"":""" JsonEscape(vTitle) ""","
+                                json .= """format"":""mp4"","
+                                json .= """type"":""video"","
+                                json .= """size"":" A_LoopFileSize ","
+                                json .= """sizeStr"":""" JsonEscape(sizeMB) ""","
+                                json .= """modified"":""" A_LoopFileTimeModified ""","
+                                json .= """dateStr"":""" JsonEscape(dateFormatted) ""","
+                                json .= """id"":""" JsonEscape(vId) ""","
+                                json .= """duration"":""" JsonEscape(vDuration) ""","
+                                json .= """channel"":""" JsonEscape(vChannel) """"
+                                json .= "},"
+                            }
+                        }
+                    }
+
+                    if InStr(FileExist(SettingPathMP3), "D") {
+                        Loop, Files, %SettingPathMP3%\*.*, F
+                        {
+                            if (A_LoopFileExt = "mp3" || A_LoopFileExt = "m4a" || A_LoopFileExt = "wav" || A_LoopFileExt = "flac" || A_LoopFileExt = "opus" || A_LoopFileExt = "ogg") {
+                                meta := metaMap[A_LoopFileLongPath]
+                                if (!meta)
+                                    meta := metaMap["name_" . A_LoopFileName]
+                                aTitle := (meta && meta.title != "") ? meta.title : SubStr(A_LoopFileName, 1, InStr(A_LoopFileName, ".", false, -1) - 1)
+                                aId := (meta && meta.id != "") ? meta.id : ""
+                                aDuration := (meta && meta.duration != "") ? meta.duration : "0"
+                                aChannel := (meta && meta.channel != "") ? meta.channel : ""
+                                
+                                sizeMB := Round(A_LoopFileSize / (1024 * 1024), 1) . " Mo"
+                                dateFormatted := SubStr(A_LoopFileTimeModified, 7, 2) . "/" . SubStr(A_LoopFileTimeModified, 5, 2) . "/" . SubStr(A_LoopFileTimeModified, 1, 4)
+
+                                json .= "{"
+                                json .= """name"":""" JsonEscape(A_LoopFileName) ""","
+                                json .= """path"":""" JsonEscape(A_LoopFileLongPath) ""","
+                                json .= """title"":""" JsonEscape(aTitle) ""","
+                                json .= """format"":""mp3"","
+                                json .= """type"":""audio"","
+                                json .= """size"":" A_LoopFileSize ","
+                                json .= """sizeStr"":""" JsonEscape(sizeMB) ""","
+                                json .= """modified"":""" A_LoopFileTimeModified ""","
+                                json .= """dateStr"":""" JsonEscape(dateFormatted) ""","
+                                json .= """id"":""" JsonEscape(aId) ""","
+                                json .= """duration"":""" JsonEscape(aDuration) ""","
+                                json .= """channel"":""" JsonEscape(aChannel) """"
+                                json .= "},"
+                            }
+                        }
+                    }
+
+                    if (SubStr(json, 0) = ",")
+                        json := SubStr(json, 1, StrLen(json) - 1)
+                    json .= "]"
+
+                    len := StrPut(json, "UTF-8") - 1
+                    this.SendText("HTTP/1.1 200 OK`r`nConnection: close`r`nAccess-Control-Allow-Origin: *`r`nCache-Control: no-store, no-cache, must-revalidate, max-age=0`r`nContent-Type: application/json; charset=UTF-8`r`nContent-Length: " len "`r`n`r`n" json)
+                } else if (path = "/api/media") {
+                    fullRaw := match1
+                    rawFile := ""
+                    if RegExMatch(fullRaw, "i)[?&]file=([^&\s]+)", fMatch)
+                        rawFile := fMatch1
+                    cleanMediaFile := UrlDecode(rawFile)
+                    cleanMediaFile := StrReplace(cleanMediaFile, "/", "\")
+
+                    if (cleanMediaFile != "" && FileExist(cleanMediaFile)) {
+                        fObj := FileOpen(cleanMediaFile, "r")
+                        if (IsObject(fObj)) {
+                            totalSize := fObj.Length
+                            startPos := 0
+                            endPos := totalSize - 1
+                            isRange := false
+                            
+                            if RegExMatch(request, "i)Range:\s*bytes=(\d+)-(\d*)", rm) {
+                                isRange := true
+                                startPos := rm1 + 0
+                                if (rm2 != "")
+                                    endPos := rm2 + 0
+                                else {
+                                    maxChunk := 2097152
+                                    endPos := (startPos + maxChunk < totalSize) ? (startPos + maxChunk) : (totalSize - 1)
+                                }
+                            } else {
+                                if (totalSize > 2097152) {
+                                    endPos := 2097151
+                                    isRange := true
+                                }
+                            }
+                            if (endPos >= totalSize)
+                                endPos := totalSize - 1
+                            contentLen := endPos - startPos + 1
+                            
+                            SplitPath, cleanMediaFile, , , fExt
+                            StringLower, fExt, fExt
+                            contentType := (fExt = "mp3") ? "audio/mpeg" : ((fExt = "m4a") ? "audio/mp4" : ((fExt = "webm") ? "video/webm" : "video/mp4"))
+                            
+                            if (isRange) {
+                                hdr := "HTTP/1.1 206 Partial Content`r`n"
+                                     . "Accept-Ranges: bytes`r`n"
+                                     . "Access-Control-Allow-Origin: *`r`n"
+                                     . "Content-Range: bytes " . startPos . "-" . endPos . "/" . totalSize . "`r`n"
+                                     . "Content-Type: " . contentType . "`r`n"
+                                     . "Content-Length: " . contentLen . "`r`n"
+                                     . "Connection: close`r`n`r`n"
+                            } else {
+                                hdr := "HTTP/1.1 200 OK`r`n"
+                                     . "Accept-Ranges: bytes`r`n"
+                                     . "Access-Control-Allow-Origin: *`r`n"
+                                     . "Content-Type: " . contentType . "`r`n"
+                                     . "Content-Length: " . totalSize . "`r`n"
+                                     . "Connection: close`r`n`r`n"
+                            }
+                            this.SendText(hdr)
+                            
+                            fObj.Seek(startPos)
+                            VarSetCapacity(buf, 65536)
+                            leftBytes := contentLen
+                            while (leftBytes > 0) {
+                                toRead := (leftBytes > 65536) ? 65536 : leftBytes
+                                rBytes := fObj.RawRead(&buf, toRead)
+                                if (!rBytes)
+                                    break
+                                sBytes := 0
+                                while (sBytes < rBytes) {
+                                    sent := DllCall("Ws2_32\send", "UInt", this.Socket, "Ptr", &buf + sBytes, "Int", rBytes - sBytes, "Int", 0)
+                                    if (sent <= 0)
+                                        break 2
+                                    sBytes += sent
+                                }
+                                leftBytes -= rBytes
+                            }
+                            fObj.Close()
+                        } else {
+                            this.SendText("HTTP/1.1 404 Not Found`r`nConnection: close`r`nContent-Length: 0`r`n`r`n")
+                        }
+                    } else {
+                        this.SendText("HTTP/1.1 404 Not Found`r`nConnection: close`r`nContent-Length: 0`r`n`r`n")
+                    }
                 } else {
                     this.SendText("HTTP/1.1 404 Not Found`r`nConnection: close`r`nContent-Length: 0`r`n`r`n")
                 }
@@ -828,6 +1013,7 @@ class HttpServer extends SocketTCP {
                         CurrentDownloadTitle := ""
                     } else if (action = "open_file" && target != "") {
                         cleanTarget := StrReplace(target, "\\", "\")
+                        cleanTarget := StrReplace(cleanTarget, "/", "\")
                         if FileExist(cleanTarget) {
                             Run, "%cleanTarget%"
                         } else {
@@ -835,23 +1021,27 @@ class HttpServer extends SocketTCP {
                         }
                     } else if (action = "open_folder") {
                         cleanTarget := StrReplace(target, "\\", "\")
+                        cleanTarget := StrReplace(cleanTarget, "/", "\")
                         folderToOpen := ""
-                        if (cleanTarget != "" && FileExist(cleanTarget)) {
-                            Run, % "explorer.exe /select,""" cleanTarget """"
+
+                        if (cleanTarget != "" && FileExist(cleanTarget) && !InStr(FileExist(cleanTarget), "D")) {
+                            Run, explorer.exe /select`,"%cleanTarget%"
                         } else {
-                            if (cleanTarget != "") {
+                            if (cleanTarget != "" && InStr(FileExist(cleanTarget), "D")) {
+                                folderToOpen := cleanTarget
+                            } else if (cleanTarget != "") {
                                 SplitPath, cleanTarget, , parentDir
                                 if (parentDir != "" && InStr(FileExist(parentDir), "D"))
                                     folderToOpen := parentDir
                             }
                             if (folderToOpen = "") {
-                                if InStr(FileExist(SettingPathMP4), "D")
-                                    folderToOpen := SettingPathMP4
-                                else if InStr(FileExist(SettingPathMP3), "D")
-                                    folderToOpen := SettingPathMP3
+                                if (cleanTarget = "mp3" || InStr(cleanTarget, ".mp3"))
+                                    folderToOpen := InStr(FileExist(SettingPathMP3), "D") ? SettingPathMP3 : SettingPathMP4
+                                else
+                                    folderToOpen := InStr(FileExist(SettingPathMP4), "D") ? SettingPathMP4 : SettingPathMP3
                             }
                             if (folderToOpen != "") {
-                                Run, % "explorer.exe """ folderToOpen """"
+                                Run, explorer.exe "%folderToOpen%"
                             }
                         }
                     } else if (action = "delete_file" && target != "") {
@@ -981,7 +1171,9 @@ class HttpServer extends SocketTCP {
                         safeTitle := StrReplace(vidTitle, "|", "-")
                         safeTitle := StrReplace(safeTitle, "`n", " ")
                         safeTitle := StrReplace(safeTitle, "`r", "")
-                        FileAppend, %url%|%type%|%safeTitle%|%quality%`n, %A_ScriptDir%\db\queue.txt
+                        RegExMatch(body, """sponsorBlock""\s*:\s*(\d+)", sbCustomMatch)
+                        customSb := (sbCustomMatch1 != "") ? sbCustomMatch1 : SettingSponsorBlock
+                        FileAppend, %url%|%type%|%safeTitle%|%quality%|%customSb%`n, %A_ScriptDir%\db\queue.txt
                         UpdateStateHash()
                         SafeTrayTip("YouTube Downloader", url . " ajouté (" . type . ")", 2, 1)
                     }
