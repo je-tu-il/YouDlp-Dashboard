@@ -6,15 +6,15 @@ Un gestionnaire de téléchargement YouTube moderne, beau, léger et ultra-rapid
 
 ## 📦 Les 2 Éditions Disponibles
 
-YouDlp Dashboard est désormais distribué en 2 éditions adaptées à tous les usages (disponibles dans la racine et dans le dossier [`Release/`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/Release/)) :
+YouDlp Dashboard est désormais distribué en 2 éditions adaptées à tous les usages (disponibles dans la racine et dans le dossier [`Release/`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest)) :
 
 | Édition | Fichier | Taille | Caractéristiques |
 | :--- | :--- | :--- | :--- |
-| **⭐ Standalone (Full)** | [`YouDlp-Dashboard-Standalone.exe`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/Release/YouDlp-Dashboard-Standalone.exe) | ~111 Mo | **100% Autonome & Clé en main**.<br>Embarque nativement **`yt-dlp.exe`**, **`ffmpeg.exe`** et l'interface Web.<br>Aucune installation requise : placez le fichier dans n'importe quel dossier et lancez-le ! Tout se configure automatiquement. |
-| **⚡ Lite (Système)** | [`YouDlp-Dashboard-Lite.exe`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/Release/YouDlp-Dashboard-Lite.exe) | ~1.4 Mo | **Ultra-léger**.<br>Embarque uniquement le code du tableau de bord et s'appuie sur `yt-dlp` et `ffmpeg` déjà présents dans votre PATH Windows. |
+| **⭐ Standalone (Full)** | [`YouDlp-Dashboard-Standalone.exe`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest) | ~111 Mo | **100% Autonome & Clé en main**.<br>Embarque nativement **`yt-dlp.exe`**, **`ffmpeg.exe`** et l'interface Web.<br>Aucune installation requise : placez le fichier dans n'importe quel dossier et lancez-le ! Tout se configure automatiquement. |
+| **⚡ Lite (Système)** | [`YouDlp-Dashboard-Lite.exe`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest) | ~1.4 Mo | **Ultra-léger**.<br>Embarque uniquement le code du tableau de bord et s'appuie sur `yt-dlp` et `ffmpeg` déjà présents dans votre PATH Windows. |
 
 > [!TIP]
-> Le fichier [`YouDlp-Dashboard.exe`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/YouDlp-Dashboard.exe) situé à la racine est identique à la version **Standalone**. Double-cliquez dessus et tout fonctionne immédiatement !
+> Le fichier [`YouDlp-Dashboard.exe`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest) situé à la racine est identique à la version **Standalone**. Double-cliquez dessus et tout fonctionne immédiatement !
 
 ---
 
@@ -104,8 +104,8 @@ flowchart LR
 
 Pour démarrer YouDlp Dashboard, **un seul clic suffit** :
 
-1. **Exécutable direct** : Double-cliquez sur [`YouDlp-Dashboard.exe`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/YouDlp-Dashboard.exe).
-2. **Raccourci Bureau** : Exécutez [`Creer Raccourci Bureau.bat`](file:///e:/Reste/Faut%20Trier/YouDlp-Dashboard/Creer%20Raccourci%20Bureau.bat) pour placer le raccourci officiel sur votre Bureau.
+1. **Exécutable direct** : Double-cliquez sur [`YouDlp-Dashboard.exe`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest).
+2. **Raccourci Bureau** : Exécutez [`Creer Raccourci Bureau.bat`](https://github.com/je-tu-il/YouDlp-Dashboard/releases/latest) pour placer le raccourci officiel sur votre Bureau.
 3. **Au démarrage de Windows** : Clic droit sur l'icône dans la barre des tâches > cochez **🚀 Lancer au démarrage de Windows**.
 
 > [!NOTE]

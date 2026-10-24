@@ -1,0 +1,89 @@
+name: Build & Release YouDlp Dashboard
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: 🪟 Build Windows Binaries
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Install AutoHotkey v1 with Compiler
+        run: |
+          choco install autohotkey.install --version=1.1.37.02 -y
+
+      - name: 📥 Download dependencies (yt-dlp & ffmpeg)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "bin" -Force | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "bin\yt-dlp.exe"
+          
+          # Download portable ffmpeg
+          Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" -OutFile "ffmpeg.zip"
+          Expand-Archive -Path "ffmpeg.zip" -DestinationPath "ffmpeg_extracted"
+          $ffmpegExe = Get-ChildItem -Path "ffmpeg_extracted" -Filter "ffmpeg.exe" -Recurse | Select-Object -First 1
+          Copy-Item -Path $ffmpegExe.FullName -Destination "bin\ffmpeg.exe"
+
+      - name: 🔨 Compile YouDlp-Dashboard Binaries
+        shell: cmd
+        run: |
+          set "COMPILER=C:\Program Files\AutoHotkey\Compiler\Ahk2Exe.exe"
+          set "BIN_BASE=C:\Program Files\AutoHotkey\Compiler\Unicode 64-bit.bin"
+          
+          if not exist Release mkdir Release
+          
+          echo Compiling Lite version...
+          "%COMPILER%" /in "%CD%\main_lite.ahk" /out "%CD%\Release\YouDlp-Dashboard-Lite.exe" /icon "%CD%\a.ico" /bin "%BIN_BASE%"
+          
+          echo Compiling Standalone version...
+          "%COMPILER%" /in "%CD%\main.ahk" /out "%CD%\Release\YouDlp-Dashboard-Standalone.exe" /icon "%CD%\a.ico" /bin "%BIN_BASE%"
+
+      - name: 📦 Package Full Standalone Zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "Release\YouDlp-Dashboard-Standalone.exe", "Release\YouDlp-Dashboard-Lite.exe", "www", "a.ico", "README.md", "LICENSE" -DestinationPath "Release\YouDlp-Dashboard-Full-Windows.zip"
+
+      - name: 🏷️ Determine Tag
+        id: vars
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like "refs/tags/*") {
+            $tag = $env:GITHUB_REF -replace "refs/tags/", ""
+          } else {
+            $tag = "v1.1.0"
+          }
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "YouDlp Dashboard ${{ steps.vars.outputs.tag }}"
+          body: |
+            ## 🎬 Livrables YouDlp Dashboard ${{ steps.vars.outputs.tag }}
+
+            Tableau de bord de téléchargement vidéo haute performance propulsé par `yt-dlp` et interface Web ultra-légère.
+
+            ### 📦 Fichiers disponibles :
+            - 🌟 **`YouDlp-Dashboard-Standalone.exe`** : Exécutable 100% autonome avec `yt-dlp` et `ffmpeg` embarqués (aucune configuration requise, lancez et profitez).
+            - ⚡ **`YouDlp-Dashboard-Lite.exe`** (~1.5 Mo) : Version ultra-légère qui s'appuie sur le `yt-dlp` et `ffmpeg` de votre système (`PATH`).
+            - 🗜️ **`YouDlp-Dashboard-Full-Windows.zip`** : Archive complète contenant tous les exécutables, icône et ressources web.
+          files: |
+            Release/YouDlp-Dashboard-Standalone.exe
+            Release/YouDlp-Dashboard-Lite.exe
+            Release/YouDlp-Dashboard-Full-Windows.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

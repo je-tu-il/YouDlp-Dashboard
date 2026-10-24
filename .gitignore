@@ -1,6 +1,7 @@
 /db/
 /thumbnails/
 /bin/yt-dlp.exe
+/bin/ffmpeg.exe
 *.exe
-!Release/YouDlp-Dashboard-Lite.exe
-
+Release/*.exe
+Release/*.zip
