@@ -21,8 +21,11 @@ jobs:
       - name: ⚙️ Install AutoHotkey v1 with Compiler
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/1.1/AutoHotkey_1.1.37.02.zip" -OutFile "ahk.zip"
-          Expand-Archive -Path "ahk.zip" -DestinationPath "C:\Program Files\AutoHotkey" -Force
+          Invoke-WebRequest -Uri "https://github.com/Lexikos/AutoHotkey_L/releases/download/v1.1.37.02/AutoHotkey_1.1.37.02_setup.exe" -OutFile "ahk_setup.exe"
+          Start-Process -FilePath ".\ahk_setup.exe" -ArgumentList "/S" -Wait
+          if (-not (Test-Path "C:\Program Files\AutoHotkey\Compiler\Ahk2Exe.exe")) {
+            throw "Ahk2Exe.exe was not installed"
+          }
 
       - name: 📥 Download dependencies (yt-dlp & ffmpeg)
         shell: pwsh
@@ -62,7 +65,7 @@ jobs:
           if ($env:GITHUB_REF -like "refs/tags/*") {
             $tag = $env:GITHUB_REF -replace "refs/tags/", ""
           } else {
-            $tag = "v1.1.1"
+            $tag = "v1.1.2"
           }
           echo "tag=$tag" >> $env:GITHUB_OUTPUT
 
