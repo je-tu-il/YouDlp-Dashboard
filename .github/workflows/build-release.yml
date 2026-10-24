@@ -19,8 +19,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ⚙️ Install AutoHotkey v1 with Compiler
+        shell: pwsh
         run: |
-          choco install autohotkey.install --version=1.1.37.02 -y
+          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/1.1/AutoHotkey_1.1.37.02.zip" -OutFile "ahk.zip"
+          Expand-Archive -Path "ahk.zip" -DestinationPath "C:\Program Files\AutoHotkey" -Force
 
       - name: 📥 Download dependencies (yt-dlp & ffmpeg)
         shell: pwsh
@@ -60,7 +62,7 @@ jobs:
           if ($env:GITHUB_REF -like "refs/tags/*") {
             $tag = $env:GITHUB_REF -replace "refs/tags/", ""
           } else {
-            $tag = "v1.1.0"
+            $tag = "v1.1.1"
           }
           echo "tag=$tag" >> $env:GITHUB_OUTPUT
 
