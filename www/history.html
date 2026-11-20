@@ -2701,7 +2701,14 @@
 
         function escapeHTML(str) {
             if (!str) return '';
-            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+            str = String(str).replace(/\\u([dD][89abAB][0-9a-fA-F]{2})\\u([dD][c-fC-F][0-9a-fA-F]{2})/g, (_, hi, lo) => {
+                const code = 0x10000 + ((parseInt(hi, 16) - 0xD800) << 10) + (parseInt(lo, 16) - 0xDC00);
+                return String.fromCodePoint(code);
+            }).replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+                const code = parseInt(hex, 16);
+                return (code >= 0xD800 && code <= 0xDFFF) ? `\\u${hex}` : String.fromCharCode(code);
+            });
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
         function clearSearch() {

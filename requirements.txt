@@ -1,0 +1,2 @@
+# Dépendances pour YouDlp-Dashboard — Suite Complète de Téléchargement Média yt-dlp GUI
+customtkinter

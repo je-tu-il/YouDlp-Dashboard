@@ -1,7 +1,7 @@
 /db/
 /thumbnails/
-/bin/yt-dlp.exe
-/bin/ffmpeg.exe
+/bin/
 *.exe
+*.lnk
 Release/*.exe
 Release/*.zip
